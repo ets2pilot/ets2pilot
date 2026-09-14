@@ -34,4 +34,20 @@ public static class VJoyNative
 
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
     public static extern bool DriverMatch(out ushort dllVer, out ushort drvVer);
+
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern bool AcquireVJD(uint rID);
+
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void RelinquishVJD(uint rID);
+
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern bool SetAxis(int value, uint rID, HidUsage axis);
+}
+
+/// <summary>vJoy SDK 的 HID_USAGES 中用到的轴。</summary>
+public enum HidUsage : uint
+{
+    X = 0x30,
+    Y = 0x31,
 }

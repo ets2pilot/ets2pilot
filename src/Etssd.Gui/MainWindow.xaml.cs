@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Navigation;
@@ -7,14 +8,35 @@ namespace Etssd.Gui;
 
 public partial class MainWindow : Window
 {
+    private bool _shutdownStarted;
+    private bool _shutdownDone;
+
     public MainWindow()
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        Closing += (_, _) => Vm.Shutdown();
+        Closing += OnClosing;
     }
 
     private MainViewModel Vm => (MainViewModel)DataContext;
+
+    /// <summary>进程随窗口关闭退出，先取消关闭，等组件停止后再关一次。</summary>
+    private async void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (_shutdownDone)
+        {
+            return;
+        }
+        e.Cancel = true;
+        if (_shutdownStarted)
+        {
+            return;
+        }
+        _shutdownStarted = true;
+        await Vm.ShutdownAsync();
+        _shutdownDone = true;
+        Close();
+    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
