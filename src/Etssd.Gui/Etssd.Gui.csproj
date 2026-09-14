@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>etssd-gui</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Etssd.Core\Etssd.Core.csproj" />
+    <ProjectReference Include="..\Etssd.Components\Etssd.Components.csproj" />
+    <ProjectReference Include="..\Etssd.Doctor\Etssd.Doctor.csproj" />
+  </ItemGroup>
+
+</Project>

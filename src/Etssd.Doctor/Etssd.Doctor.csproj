@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Etssd.Core\Etssd.Core.csproj" />
+    <ProjectReference Include="..\Etssd.Interface\Etssd.Interface.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,5 +1,11 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/etssd/etssd.csproj" />
+    <Project Path="src/Etssd.Core/Etssd.Core.csproj" />
+    <Project Path="src/Etssd.Interface/Etssd.Interface.csproj" />
+    <Project Path="src/Etssd.Inference/Etssd.Inference.csproj" />
+    <Project Path="src/Etssd.Doctor/Etssd.Doctor.csproj" />
+    <Project Path="src/Etssd.Components/Etssd.Components.csproj" />
+    <Project Path="src/Etssd.Cli/Etssd.Cli.csproj" />
+    <Project Path="src/Etssd.Gui/Etssd.Gui.csproj" />
   </Folder>
 </Solution>
