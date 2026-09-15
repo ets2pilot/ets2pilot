@@ -28,9 +28,11 @@ public sealed class ImageTelemetryLoop(BlockingCollection<TelemetrySample> sampl
                 {
                     continue;
                 }
+                // 新图像最多等最短周期的一半，等不到时本周期断流
+                var maxWait = TimeSpan.FromSeconds(0.5 / due.Max(s => s.Request.Freq));
                 try
                 {
-                    if (!capture.TryCapture(ring, seq + 1))
+                    if (!capture.TryCapture(ring, seq + 1, maxWait))
                     {
                         continue;
                     }

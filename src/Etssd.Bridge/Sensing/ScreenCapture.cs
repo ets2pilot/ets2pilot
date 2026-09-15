@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Etssd.Bridge.Frames;
 using Microsoft.Extensions.Logging;
 using SharpGen.Runtime;
@@ -26,8 +27,8 @@ public sealed class ScreenCapture : IDisposable
         Win32.SetThreadDpiAwarenessContext(Win32.DpiAwarenessPerMonitorV2);
     }
 
-    /// <summary>截图写入第 seq 帧，不等待新的屏幕更新。窗口不可截时返回 false 且不改动 ring。</summary>
-    public bool TryCapture(FrameRing ring, ulong seq)
+    /// <summary>把上次写入之后的新屏幕图像写入第 seq 帧。窗口不可截或 maxWait 内没有新图像时返回 false 且不改动 ring。</summary>
+    public bool TryCapture(FrameRing ring, ulong seq, TimeSpan maxWait)
     {
         if (!TryLocateWindow(out var monitor, out var client, out var rejection))
         {
@@ -46,15 +47,15 @@ public sealed class ScreenCapture : IDisposable
             Reject("ETS2 窗口跨越多个显示器");
             return false;
         }
-        switch (_pipeline.Refresh())
+        switch (_pipeline.Refresh(maxWait))
         {
             case RefreshResult.AccessLost:
                 _pipeline.Dispose();
                 _pipeline = null;
                 Reject("桌面复制失效，重建中");
                 return false;
-            case RefreshResult.NoImage:
-                Reject("等待首帧桌面图像");
+            case RefreshResult.Stale:
+                Reject($"{maxWait.TotalMilliseconds:F0}ms 内没有新的桌面图像");
                 return false;
         }
         var source = new RawRect(
@@ -117,8 +118,8 @@ public sealed class ScreenCapture : IDisposable
 
     private enum RefreshResult
     {
-        Ok,
-        NoImage,
+        Fresh,
+        Stale,
         AccessLost,
     }
 
@@ -136,7 +137,7 @@ public sealed class ScreenCapture : IDisposable
         private readonly ID3D11Texture2D _scaled;
         private readonly ID3D11VideoProcessorOutputView _outputView;
         private readonly ID3D11Texture2D _staging;
-        private bool _hasDesktop;
+        private bool _fresh; // _desktop 含上次 Write 之后的桌面更新
 
         private Pipeline(IntPtr monitor, RawRect desktopRect, IDXGIAdapter1 adapter, IDXGIOutput1 output)
         {
@@ -224,15 +225,25 @@ public sealed class ScreenCapture : IDisposable
             throw new InvalidOperationException("ETS2 窗口所在显示器没有对应的 DXGI output");
         }
 
-        /// <summary>把桌面复制中尚未取走的更新拷入 _desktop，不等待。无更新时 _desktop 已是当前屏幕图像。</summary>
-        public RefreshResult Refresh()
+        /// <summary>把桌面复制中尚未取走的更新拷入 _desktop。上次 <see cref="Write"/> 之后还没有更新时最多等待 maxWait。</summary>
+        /// <remarks>
+        /// 积压的更新在下一次 present 时才合并成一帧交付，新帧生成期间 AcquireNextFrame(0) 返回 WaitTimeout，
+        /// 所以 0 超时不能用来判断有无新图像。
+        /// </remarks>
+        public RefreshResult Refresh(TimeSpan maxWait)
         {
+            var start = Stopwatch.GetTimestamp();
             while (true)
             {
-                var result = _duplication.AcquireNextFrame(0, out var info, out var frame);
+                var remaining = maxWait - Stopwatch.GetElapsedTime(start);
+                // uint.MaxValue 表示 INFINITE
+                var timeoutMs = _fresh || remaining <= TimeSpan.Zero
+                    ? 0u
+                    : (uint)Math.Ceiling(Math.Min(remaining.TotalMilliseconds, uint.MaxValue - 1));
+                var result = _duplication.AcquireNextFrame(timeoutMs, out var info, out var frame);
                 if (result == Vortice.DXGI.ResultCode.WaitTimeout)
                 {
-                    return _hasDesktop ? RefreshResult.Ok : RefreshResult.NoImage;
+                    return _fresh ? RefreshResult.Fresh : RefreshResult.Stale;
                 }
                 if (result == Vortice.DXGI.ResultCode.AccessLost)
                 {
@@ -242,11 +253,11 @@ public sealed class ScreenCapture : IDisposable
                 try
                 {
                     // 只有鼠标指针变化的更新不带新的桌面图像
-                    if (info.LastPresentTime != 0 || !_hasDesktop)
+                    if (info.LastPresentTime != 0)
                     {
                         using var texture = frame.QueryInterface<ID3D11Texture2D>();
                         _context.CopyResource(_desktop, texture);
-                        _hasDesktop = true;
+                        _fresh = true;
                     }
                 }
                 finally
@@ -276,6 +287,7 @@ public sealed class ScreenCapture : IDisposable
                         .CopyTo(pixels.Slice(y * rowBytes, rowBytes));
                 }
                 ring.EndWrite(seq);
+                _fresh = false;
             }
             finally
             {
