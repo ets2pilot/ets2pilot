@@ -15,7 +15,7 @@ public sealed class InferenceComponent(AppConfig config, ILoggerFactory loggers)
         _log.LogInformation("infer running, model: {Model}", config.Model);
         // loopback 请求不能走 HTTP_PROXY
         using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
-        await Task.WhenAll(new ControlServer(http).RunAsync(ct), new ModelServer(config.Model, http).RunAsync(ct));
+        await Task.WhenAll(new ControlServer(http).RunAsync(ct), new ModelServer(config.Model, http, loggers.CreateLogger<ModelServer>()).RunAsync(ct));
         _log.LogInformation("infer stopped");
     }
 }

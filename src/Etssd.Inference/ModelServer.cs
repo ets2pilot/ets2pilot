@@ -1,5 +1,6 @@
 using System.IO.MemoryMappedFiles;
 using System.Net.Http.Json;
+using System.Threading.Channels;
 using Etssd.Interface.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -13,7 +14,7 @@ namespace Etssd.Inference;
 
 /// <summary>模型算法 server。注册 image+telemetry webhook，推理出的轨迹 POST 到 control server。</summary>
 /// <param name="modelDir">含 telemetry_encoder.onnx、image_encoder.onnx、decoder.onnx 的目录。</param>
-public sealed class ModelServer(string modelDir, HttpClient http)
+public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
 {
     public const string Url = "http://127.0.0.1:5321";
 
@@ -36,31 +37,18 @@ public sealed class ModelServer(string modelDir, HttpClient http)
         builder.Services.ConfigureHttpJsonOptions(o => Json.Configure(o.SerializerOptions));
         await using var app = builder.Build();
 
-        // 注册的响应给出帧共享内存的布局，通知可能先于响应到达
-        var frames = new TaskCompletionSource<FrameRing>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // 只保留最新一条通知。seq 在全部 image 订阅间统一编号，丢帧按到达序号判断
+        var latest = Channel.CreateBounded<(long Index, ulong Seq, byte[] Telemetry)>(
+            new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest });
+        long received = 0;
         var window = new Queue<(byte[] Telemetry, IDisposableReadOnlyCollection<OrtValue> Image)>();
 
-        app.MapPost("/notify", async (Notification notification) =>
+        // interface 收到响应才投递下一条，推理不能阻塞响应
+        app.MapPost("/notify", (Notification notification) =>
         {
-            if (notification is not { Event: "data", Seq: { } seq, Telemetry: { } telemetry })
+            if (notification is { Event: "data", Seq: { } seq, Telemetry: { } telemetry })
             {
-                return Results.NoContent();
-            }
-            if ((await frames.Task).Crop(seq, imageEncoder.Regions) is not { } crops)
-            {
-                return Results.NoContent();
-            }
-            window.Enqueue((telemetry, imageEncoder.Forward(crops)));
-            if (window.Count > decoder.Frames)
-            {
-                window.Dequeue().Image.Dispose();
-            }
-            if (window.Count == decoder.Frames)
-            {
-                using var encoded = telemetryEncoder.Forward([.. window.Select(w => w.Telemetry)]);
-                var (speed, yawRate) = decoder.Forward(encoded, [.. window.Select(w => w.Image)]);
-                using var response = await http.PostAsJsonAsync($"{ControlServer.Url}/trajectory",
-                    new TrajectoryRequest(decoder.Freq, telemetry, speed, yawRate), Json.Options);
+                latest.Writer.TryWrite((Interlocked.Increment(ref received), seq, telemetry));
             }
             return Results.NoContent();
         });
@@ -70,18 +58,45 @@ public sealed class ModelServer(string modelDir, HttpClient http)
             new WebhookRequest("infer", SubscriptionType.ImageTelemetry, decoder.Freq, $"{Url}/notify"), Json.Options, ct);
         registered.EnsureSuccessStatusCode();
         using var ring = new FrameRing((await registered.Content.ReadFromJsonAsync<WebhookResponse>(Json.Options, ct))!);
-        frames.SetResult(ring);
-        try
+        await using var stopping = ct.Register(() => latest.Writer.TryComplete());
+        long consumed = 0;
+        await foreach (var (index, seq, telemetry) in latest.Reader.ReadAllAsync())
         {
-            await Task.Delay(Timeout.Infinite, ct);
-        }
-        catch (OperationCanceledException)
-        {
+            var crops = ring.Crop(seq, imageEncoder.Regions);
+            if (index != consumed + 1 || crops is null)
+            {
+                log.LogWarning("推理跟不上 {Freq}Hz，丢弃 {Count} 帧历史", decoder.Freq, window.Count);
+                DiscardWindow();
+            }
+            consumed = index;
+            if (crops is null)
+            {
+                continue;
+            }
+            window.Enqueue((telemetry, imageEncoder.Forward(crops)));
+            if (window.Count > decoder.Frames)
+            {
+                window.Dequeue().Image.Dispose();
+            }
+            if (window.Count < decoder.Frames)
+            {
+                continue;
+            }
+            using var encoded = telemetryEncoder.Forward([.. window.Select(w => w.Telemetry)]);
+            var (speed, yawRate) = decoder.Forward(encoded, [.. window.Select(w => w.Image)]);
+            using var response = await http.PostAsJsonAsync($"{ControlServer.Url}/trajectory",
+                new TrajectoryRequest(decoder.Freq, telemetry, speed, yawRate), Json.Options);
         }
         await app.StopAsync();
-        foreach (var (_, image) in window)
+        DiscardWindow();
+
+        void DiscardWindow()
         {
-            image.Dispose();
+            foreach (var (_, image) in window)
+            {
+                image.Dispose();
+            }
+            window.Clear();
         }
     }
 
