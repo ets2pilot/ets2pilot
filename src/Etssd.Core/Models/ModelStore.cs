@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Etssd.Core.Models;
 
 /// <summary>模型目录的解析进度。</summary>
@@ -38,8 +40,8 @@ public static class ModelStore
         {
             info = await HfHub.GetRevisionAsync(http, endpoint, config.ModelRepo, revision, ct);
         }
-        // endpoint 是用户输入，可能不是合法的绝对地址
-        catch (Exception ex) when (ex is HfException or HttpRequestException or IOException or UriFormatException or InvalidOperationException)
+        // endpoint 是用户输入，可能不是合法的绝对地址，也可能返回非 hub 格式的 JSON 或 HTML
+        catch (Exception ex) when (ex is HfException or HttpRequestException or IOException or UriFormatException or InvalidOperationException or JsonException)
         {
             return File.Exists(complete)
                 ? new ModelState.Ready(dir, File.ReadAllText(complete), null, ex.Message)

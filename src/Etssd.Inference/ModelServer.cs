@@ -85,8 +85,15 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
             }
             using var encoded = telemetryEncoder.Forward([.. window.Select(w => w.Telemetry)]);
             var (speed, yawRate) = decoder.Forward(encoded, [.. window.Select(w => w.Image)]);
-            using var response = await http.PostAsJsonAsync($"{ControlServer.Url}/trajectory",
-                new TrajectoryRequest(decoder.Freq, telemetry, speed, yawRate), Json.Options);
+            try
+            {
+                using var response = await http.PostAsJsonAsync($"{ControlServer.Url}/trajectory",
+                    new TrajectoryRequest(decoder.Freq, telemetry, speed, yawRate), Json.Options);
+            }
+            catch (HttpRequestException)
+            {
+                // control 未运行时丢弃本条轨迹，继续推理
+            }
         }
         await app.StopAsync();
         DiscardWindow();
