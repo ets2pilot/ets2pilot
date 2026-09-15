@@ -1,16 +1,16 @@
-using Etssd.Interface.Frames;
-using Etssd.Interface.VJoy;
-using Etssd.Interface.Webhook;
+using Etssd.Bridge.Frames;
+using Etssd.Bridge.VJoy;
+using Etssd.Bridge.Webhook;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.Http;
+namespace Etssd.Bridge.Http;
 
-/// <summary>POST /webhook 与 POST /control。固定端口同时保证本机只有一个 interface 实例。</summary>
-public static class InterfaceServer
+/// <summary>POST /webhook 与 POST /control。固定端口同时保证本机只有一个 bridge 实例。</summary>
+public static class BridgeServer
 {
     public const string Url = "http://127.0.0.1:5320";
 

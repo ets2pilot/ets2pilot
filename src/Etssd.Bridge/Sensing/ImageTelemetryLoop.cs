@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
-using Etssd.Interface.Frames;
-using Etssd.Interface.Http;
-using Etssd.Interface.Webhook;
+using Etssd.Bridge.Frames;
+using Etssd.Bridge.Http;
+using Etssd.Bridge.Webhook;
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 /// <summary>image 回调线程。快照有到期的 image+telemetry 订阅时截取当前屏幕写入 slot，与快照合并后投递。</summary>
 /// <remarks><see cref="ScreenCapture"/> 与本线程的 DPI 设置绑定，只在本线程上使用。</remarks>

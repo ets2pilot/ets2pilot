@@ -1,6 +1,6 @@
 using System.IO.MemoryMappedFiles;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 /// <summary>scs-sdk-plugin 的共享内存。映射在游戏加载插件后才出现，首次成功打开后一直持有。</summary>
 public sealed class ScsTelemetry : IDisposable

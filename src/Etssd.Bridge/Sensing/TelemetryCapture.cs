@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 /// <param name="SimulationTimeUs">SCS simulation_time，暂停时继续走。</param>
 /// <param name="UnixNs">锁定时刻，Unix epoch 纳秒。</param>

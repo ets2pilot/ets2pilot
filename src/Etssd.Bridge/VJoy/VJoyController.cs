@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.VJoy;
+namespace Etssd.Bridge.VJoy;
 
 /// <summary>
 /// 独占 vJoy 设备驱动卡车。steer 走 X 轴，throttle 走 Y 轴，须与 ETS2 控制器设置中绑定的轴一致。

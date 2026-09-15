@@ -41,7 +41,7 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Vm.Logs.CollectionChanged += OnLogsChanged;
-        _ = Vm.RunInterfaceAsync();
+        _ = Vm.RunBridgeAsync();
         await Vm.RunChecksAsync();
     }
 

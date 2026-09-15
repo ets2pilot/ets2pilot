@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 internal static class Win32
 {

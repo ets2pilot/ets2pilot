@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Etssd.Interface.Http;
+namespace Etssd.Bridge.Http;
 
 public enum SubscriptionType
 {
@@ -22,7 +22,7 @@ public sealed record WebhookResponse(int ProtocolVersion, string MappingName, in
 public sealed record ControlRequest(double Throttle, double Steer);
 
 /// <summary>POST 到订阅者 url 的 body。</summary>
-/// <param name="Event">data 或 end，end 表示 interface 正在关闭。</param>
+/// <param name="Event">data 或 end，end 表示 bridge 正在关闭。</param>
 /// <param name="Seq">帧序号，仅 image+telemetry 订阅的 data 事件携带。</param>
 /// <param name="TimestampNs">Unix epoch 纳秒，telemetry 快照时刻。</param>
 /// <param name="Telemetry">Local\SCSTelemetry 的完整原始字节，JSON 中为 base64。</param>

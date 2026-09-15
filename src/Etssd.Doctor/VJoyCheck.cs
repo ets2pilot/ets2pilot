@@ -1,4 +1,4 @@
-using Etssd.Interface.VJoy;
+using Etssd.Bridge.VJoy;
 
 namespace Etssd.Doctor;
 

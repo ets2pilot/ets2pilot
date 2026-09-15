@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Etssd.Interface.Http;
+using Etssd.Bridge.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +15,7 @@ namespace Etssd.Inference;
 /// <param name="YawRate">[H]。</param>
 public sealed record TrajectoryRequest(double Freq, byte[] Telemetry, double[] Speed, double[] YawRate);
 
-/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 interface 的 /control。</summary>
+/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 bridge 的 /control。</summary>
 public sealed class ControlServer(HttpClient http)
 {
     public const string Url = "http://127.0.0.1:5322";
@@ -35,7 +35,7 @@ public sealed class ControlServer(HttpClient http)
             var anchor = VehicleState.From(trajectory.Telemetry);
             _plan = new Plan(anchor.TimeUs, trajectory.Freq,
                 new Controller(anchor, trajectory.Speed, trajectory.YawRate, trajectory.Freq));
-            using var registered = await http.PostAsJsonAsync($"{InterfaceServer.Url}/webhook",
+            using var registered = await http.PostAsJsonAsync($"{BridgeServer.Url}/webhook",
                 new WebhookRequest("control", SubscriptionType.Telemetry, 60, $"{Url}/notify", trajectory.Speed.Length / trajectory.Freq), Json.Options);
             return Results.NoContent();
         });
@@ -55,7 +55,7 @@ public sealed class ControlServer(HttpClient http)
             // 控制流的遥测可能早于轨迹的锚点帧，按锚点取
             var command = plan.Controller.At(Math.Max(offset, 0), state);
             using var response = await http.PostAsJsonAsync(
-                $"{InterfaceServer.Url}/control", new ControlRequest(command.Accel, command.Steer), Json.Options);
+                $"{BridgeServer.Url}/control", new ControlRequest(command.Accel, command.Steer), Json.Options);
             return Results.NoContent();
         });
 

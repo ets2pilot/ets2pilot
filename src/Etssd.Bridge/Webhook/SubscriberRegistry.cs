@@ -1,7 +1,7 @@
-using Etssd.Interface.Http;
+using Etssd.Bridge.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.Webhook;
+namespace Etssd.Bridge.Webhook;
 
 /// <summary>按 name 索引的订阅集合。HTTP 线程写入，传感线程读取 <see cref="Snapshot"/>。</summary>
 public sealed class SubscriberRegistry(HttpClient http, ILogger log)

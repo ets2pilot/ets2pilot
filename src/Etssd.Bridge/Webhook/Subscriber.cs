@@ -1,11 +1,11 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Channels;
-using Etssd.Interface.Frames;
-using Etssd.Interface.Http;
+using Etssd.Bridge.Frames;
+using Etssd.Bridge.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.Webhook;
+namespace Etssd.Bridge.Webhook;
 
 /// <summary>一个 webhook 订阅，按注册顺序逐条投递通知。</summary>
 /// <remarks>

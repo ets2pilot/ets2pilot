@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using Etssd.Interface.Http;
-using Etssd.Interface.Webhook;
+using Etssd.Bridge.Http;
+using Etssd.Bridge.Webhook;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 /// <summary>telemetry 回调线程，把每份快照投递给到期的 telemetry 订阅。</summary>
 public sealed class TelemetryLoop(BlockingCollection<TelemetrySample> samples, SubscriberRegistry registry)

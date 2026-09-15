@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Etssd.Interface.Http;
+using Etssd.Bridge.Http;
 using Microsoft.ML.OnnxRuntime;
 
 namespace Etssd.Inference;

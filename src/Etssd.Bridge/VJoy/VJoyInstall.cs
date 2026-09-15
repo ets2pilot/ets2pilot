@@ -1,6 +1,6 @@
 using Microsoft.Win32;
 
-namespace Etssd.Interface.VJoy;
+namespace Etssd.Bridge.VJoy;
 
 /// <summary>本机 vJoy 安装位置。不随程序分发 vJoyInterface.dll，避免与已装驱动版本不一致。</summary>
 public static class VJoyInstall

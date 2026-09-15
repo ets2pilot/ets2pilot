@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Etssd.Inference;
 
-/// <summary>作为 interface 的回调客户端驾驶：模型算法 server 出轨迹，控制算法 server 跟踪轨迹。</summary>
+/// <summary>作为 bridge 的回调客户端驾驶：模型算法 server 出轨迹，控制算法 server 跟踪轨迹。</summary>
 public sealed class InferenceComponent(AppConfig config, ILoggerFactory loggers) : IComponent
 {
     private readonly ILogger _log = loggers.CreateLogger<InferenceComponent>();

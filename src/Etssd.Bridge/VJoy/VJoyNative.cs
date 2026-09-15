@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Etssd.Interface.VJoy;
+namespace Etssd.Bridge.VJoy;
 
 /// <summary>vJoy SDK 的 VjdStat。</summary>
 public enum VjdStat

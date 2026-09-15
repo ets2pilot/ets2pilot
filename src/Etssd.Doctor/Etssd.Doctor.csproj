@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Etssd.Core\Etssd.Core.csproj" />
-    <ProjectReference Include="..\Etssd.Interface\Etssd.Interface.csproj" />
+    <ProjectReference Include="..\Etssd.Bridge\Etssd.Bridge.csproj" />
   </ItemGroup>
 
 </Project>

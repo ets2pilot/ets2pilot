@@ -1,7 +1,7 @@
 using System.IO.MemoryMappedFiles;
 using System.Net.Http.Json;
 using System.Threading.Channels;
-using Etssd.Interface.Http;
+using Etssd.Bridge.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -45,7 +45,7 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
         long received = 0;
         var window = new Queue<(byte[] Telemetry, IDisposableReadOnlyCollection<OrtValue> Image)>();
 
-        // interface 收到响应才投递下一条，推理不能阻塞响应
+        // bridge 收到响应才投递下一条，推理不能阻塞响应
         app.MapPost("/notify", (Notification notification) =>
         {
             if (notification is { Event: "data", Seq: { } seq, Telemetry: { } telemetry })
@@ -93,7 +93,7 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
 
         async Task<WebhookResponse> RegisterAsync()
         {
-            using var response = await http.PostAsJsonAsync($"{InterfaceServer.Url}/webhook", webhook, Json.Options, ct);
+            using var response = await http.PostAsJsonAsync($"{BridgeServer.Url}/webhook", webhook, Json.Options, ct);
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<WebhookResponse>(Json.Options, ct))!;
         }
@@ -108,7 +108,7 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
         }
     }
 
-    /// <summary>帧共享内存的读端，布局见 <see cref="Interface.Frames.FrameRing"/>。</summary>
+    /// <summary>帧共享内存的读端，布局见 <see cref="Bridge.Frames.FrameRing"/>。</summary>
     private sealed class FrameRing : IDisposable
     {
         private readonly WebhookResponse _layout;

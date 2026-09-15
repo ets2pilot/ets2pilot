@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
-using Etssd.Interface.Http;
-using Etssd.Interface.Webhook;
+using Etssd.Bridge.Http;
+using Etssd.Bridge.Webhook;
 using Microsoft.Extensions.Logging;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 /// <summary>相机回正线程。存在 image+telemetry 订阅且 ETS2 在前台时，按固定间隔向前台窗口按 1 键。</summary>
 /// <remarks>ETS2 默认键位下 1 键回正驾驶室相机。按键会送进任何前台窗口，前台检查不可省略。</remarks>
@@ -50,7 +50,7 @@ public sealed class CameraResetLoop(SubscriberRegistry registry, ILogger log)
         }
         if (!_failed)
         {
-            // 常见原因是 ETS2 以管理员运行而 interface 没有
+            // 常见原因是 ETS2 以管理员运行而 bridge 没有
             log.LogWarning("相机回正按键发送失败 (Win32 错误 {Error})", Marshal.GetLastWin32Error());
             _failed = true;
         }

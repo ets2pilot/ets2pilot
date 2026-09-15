@@ -9,18 +9,18 @@ namespace Etssd.Gui;
 
 public sealed record CheckRow(string Name, CheckStatus Status, string Message, string? Link);
 
-/// <summary>interface 随窗口的生命周期运行，infer 由 Run/Stop 控制。</summary>
+/// <summary>bridge 随窗口的生命周期运行，infer 由 Run/Stop 控制。</summary>
 public sealed class MainViewModel : ObservableObject
 {
     private const int MaxLogLines = 2000;
 
     private readonly AppConfig _config;
     private readonly ILogger _log;
-    private readonly IComponent _interface;
+    private readonly IComponent _bridge;
     private readonly IComponent _infer;
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _inferCts;
-    private Task _interfaceRun = Task.CompletedTask;
+    private Task _bridgeRun = Task.CompletedTask;
     private bool _isRunning;
 
     public MainViewModel(AppConfig config, ILoggerFactory loggers, UiLoggerProvider uiLog, Dispatcher dispatcher)
@@ -28,7 +28,7 @@ public sealed class MainViewModel : ObservableObject
         _config = config;
         _log = loggers.CreateLogger<MainViewModel>();
         var components = Manifest.All(config, loggers);
-        _interface = components.Single(c => c.Name == "interface");
+        _bridge = components.Single(c => c.Name == "bridge");
         _infer = components.Single(c => c.Name == "infer");
         uiLog.EntryLogged += line => dispatcher.BeginInvoke(() =>
         {
@@ -74,8 +74,8 @@ public sealed class MainViewModel : ObservableObject
 
     public bool CanRun => !IsRunning;
 
-    /// <summary>运行 interface 直到 <see cref="ShutdownAsync"/>。</summary>
-    public Task RunInterfaceAsync() => _interfaceRun = RunOne(_interface, _lifetime.Token);
+    /// <summary>运行 bridge 直到 <see cref="ShutdownAsync"/>。</summary>
+    public Task RunBridgeAsync() => _bridgeRun = RunOne(_bridge, _lifetime.Token);
 
     public async Task StartAsync()
     {
@@ -93,11 +93,11 @@ public sealed class MainViewModel : ObservableObject
 
     public void Stop() => _inferCts?.Cancel();
 
-    /// <summary>停止全部组件，等待 interface 向订阅者发完 end 通知。</summary>
+    /// <summary>停止全部组件，等待 bridge 向订阅者发完 end 通知。</summary>
     public async Task ShutdownAsync()
     {
         await _lifetime.CancelAsync();
-        await _interfaceRun;
+        await _bridgeRun;
     }
 
     public async Task RunChecksAsync()

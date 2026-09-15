@@ -1,6 +1,6 @@
 using System.IO.MemoryMappedFiles;
 
-namespace Etssd.Interface.Frames;
+namespace Etssd.Bridge.Frames;
 
 /// <summary>
 /// 帧共享内存的写端。布局为 SlotCount 个 [u64 seq][BGRA8 pixels]，无 header，第 seq 帧写入 slot seq % SlotCount。

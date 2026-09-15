@@ -1,6 +1,6 @@
 using Etssd.Core;
 using Etssd.Inference;
-using Etssd.Interface;
+using Etssd.Bridge;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Components;
@@ -11,7 +11,7 @@ public static class Manifest
     /// <summary>构造无副作用，组件在 RunAsync 才申请资源。</summary>
     public static IReadOnlyList<IComponent> All(AppConfig config, ILoggerFactory loggers) =>
     [
-        new InterfaceComponent(loggers),
+        new BridgeComponent(loggers),
         new InferenceComponent(config, loggers),
     ];
 }

@@ -1,4 +1,4 @@
-using Etssd.Interface.Frames;
+using Etssd.Bridge.Frames;
 using Microsoft.Extensions.Logging;
 using SharpGen.Runtime;
 using Vortice;
@@ -6,7 +6,7 @@ using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 
-namespace Etssd.Interface.Sensing;
+namespace Etssd.Bridge.Sensing;
 
 /// <summary>
 /// 截取 ETS2 窗口 client 区域当前的屏幕图像，经 D3D11 Video Processor 缩放到 <see cref="FrameRing"/> 的分辨率后写入 slot。
