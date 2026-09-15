@@ -24,7 +24,7 @@ public sealed class TelemetryCapture(ILogger log) : IDisposable
         return output;
     }
 
-    public Task RunAsync(CancellationToken ct) => DedicatedThread.RunAsync("etssd-telemetry-capture", () => Run(ct));
+    public Task RunAsync(CancellationToken ct) => Task.Factory.StartNew(() => Run(ct), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     public void Dispose()
     {

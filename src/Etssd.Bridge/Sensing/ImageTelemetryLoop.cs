@@ -10,7 +10,7 @@ namespace Etssd.Bridge.Sensing;
 /// <remarks><see cref="ScreenCapture"/> 与本线程的 DPI 设置绑定，只在本线程上使用。</remarks>
 public sealed class ImageTelemetryLoop(BlockingCollection<TelemetrySample> samples, SubscriberRegistry registry, ILogger log)
 {
-    public Task RunAsync(CancellationToken ct) => DedicatedThread.RunAsync("etssd-image-telemetry", () => Run(ct));
+    public Task RunAsync(CancellationToken ct) => Task.Factory.StartNew(() => Run(ct), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     private void Run(CancellationToken ct)
     {

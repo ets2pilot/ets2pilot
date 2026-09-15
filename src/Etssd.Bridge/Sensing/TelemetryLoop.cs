@@ -7,7 +7,7 @@ namespace Etssd.Bridge.Sensing;
 /// <summary>telemetry 回调线程，把每份快照投递给到期的 telemetry 订阅。</summary>
 public sealed class TelemetryLoop(BlockingCollection<TelemetrySample> samples, SubscriberRegistry registry)
 {
-    public Task RunAsync(CancellationToken ct) => DedicatedThread.RunAsync("etssd-telemetry", () => Run(ct));
+    public Task RunAsync(CancellationToken ct) => Task.Factory.StartNew(() => Run(ct), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     private void Run(CancellationToken ct)
     {

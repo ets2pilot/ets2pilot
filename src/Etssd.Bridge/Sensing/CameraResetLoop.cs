@@ -17,7 +17,7 @@ public sealed class CameraResetLoop(SubscriberRegistry registry, ILogger log)
 
     private bool _failed;
 
-    public Task RunAsync(CancellationToken ct) => DedicatedThread.RunAsync("etssd-camera-reset", () => Run(ct));
+    public Task RunAsync(CancellationToken ct) => Task.Factory.StartNew(() => Run(ct), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     private void Run(CancellationToken ct)
     {
