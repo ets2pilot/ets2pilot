@@ -1,24 +1,32 @@
-using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
-using System.Windows.Navigation;
+using Etssd.Gui.Pages;
+using Wpf.Ui.Abstractions;
+using Wpf.Ui.Controls;
 
 namespace Etssd.Gui;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
+    private readonly MainViewModel _vm;
     private bool _shutdownStarted;
     private bool _shutdownDone;
 
-    public MainWindow()
+    public MainWindow(MainViewModel vm)
     {
+        _vm = vm;
+        DataContext = vm;
         InitializeComponent();
+        // NavigationView 的内容区是 Frame，页面不继承窗口的 DataContext
+        RootNavigation.SetPageProviderService(new PageProvider(new Dictionary<Type, FrameworkElement>
+        {
+            [typeof(OverviewPage)] = new OverviewPage { DataContext = vm },
+            [typeof(LogsPage)] = new LogsPage { DataContext = vm },
+            [typeof(SettingsPage)] = new SettingsPage { DataContext = vm },
+        }));
         Loaded += OnLoaded;
         Closing += OnClosing;
     }
-
-    private MainViewModel Vm => (MainViewModel)DataContext;
 
     /// <summary>进程随窗口关闭退出，先取消关闭，等组件停止后再关一次。</summary>
     private async void OnClosing(object? sender, CancelEventArgs e)
@@ -33,30 +41,22 @@ public partial class MainWindow : Window
             return;
         }
         _shutdownStarted = true;
-        await Vm.ShutdownAsync();
+        await _vm.ShutdownAsync();
         _shutdownDone = true;
         Close();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        Vm.Logs.CollectionChanged += OnLogsChanged;
-        _ = Vm.RunBridgeAsync();
-        _ = Vm.RunControlAsync();
-        await Vm.RunChecksCommand.ExecuteAsync(null);
+        RootNavigation.Navigate(typeof(OverviewPage));
+        _vm.Start();
+        await Task.WhenAll(
+            _vm.RunChecksCommand.ExecuteAsync(null),
+            _vm.CheckModelCommand.ExecuteAsync(null));
     }
 
-    private void OnLogsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private sealed class PageProvider(IReadOnlyDictionary<Type, FrameworkElement> pages) : INavigationViewPageProvider
     {
-        if (LogList.Items.Count > 0)
-        {
-            LogList.ScrollIntoView(LogList.Items[^1]);
-        }
-    }
-
-    private void Link_RequestNavigate(object sender, RequestNavigateEventArgs e)
-    {
-        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
-        e.Handled = true;
+        public object? GetPage(Type pageType) => pages.GetValueOrDefault(pageType);
     }
 }

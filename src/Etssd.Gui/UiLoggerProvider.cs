@@ -2,15 +2,34 @@ using Microsoft.Extensions.Logging;
 
 namespace Etssd.Gui;
 
-/// <summary>把日志行推给日志页。事件在写日志的线程上触发，订阅方自行切到 UI 线程。</summary>
+/// <param name="Category">logger 类别名的末两段，如 Webhook.SubscriberRegistry。</param>
+public sealed record LogEntry(DateTime Time, LogLevel Level, string Category, string Message)
+{
+    public string LevelText => Level switch
+    {
+        LogLevel.Information => "INFO",
+        LogLevel.Warning => "WARN",
+        LogLevel.Error => "ERROR",
+        LogLevel.Critical => "CRIT",
+        _ => Level.ToString().ToUpperInvariant(),
+    };
+}
+
+/// <summary>把日志条目推给日志页。事件在写日志的线程上触发，订阅方自行切到 UI 线程。</summary>
 public sealed class UiLoggerProvider : ILoggerProvider
 {
-    public event Action<string>? EntryLogged;
+    public event Action<LogEntry>? EntryLogged;
 
-    public ILogger CreateLogger(string categoryName) => new UiLogger(this, categoryName);
+    public ILogger CreateLogger(string categoryName) => new UiLogger(this, ShortCategory(categoryName));
 
     public void Dispose()
     {
+    }
+
+    private static string ShortCategory(string category)
+    {
+        var parts = category.Split('.');
+        return string.Join('.', parts[Math.Max(0, parts.Length - 2)..]);
     }
 
     private sealed class UiLogger(UiLoggerProvider owner, string category) : ILogger
@@ -27,12 +46,12 @@ public sealed class UiLoggerProvider : ILoggerProvider
             {
                 return;
             }
-            var line = $"{DateTime.Now:HH:mm:ss} [{logLevel}] {category}: {formatter(state, exception)}";
+            var message = formatter(state, exception);
             if (exception is not null)
             {
-                line += Environment.NewLine + exception;
+                message += Environment.NewLine + exception;
             }
-            owner.EntryLogged?.Invoke(line);
+            owner.EntryLogged?.Invoke(new LogEntry(DateTime.Now, logLevel, category, message));
         }
     }
 }
