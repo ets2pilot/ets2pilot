@@ -12,11 +12,13 @@ using SessionOptions = Microsoft.ML.OnnxRuntime.SessionOptions;
 
 namespace Etssd.Inference;
 
-/// <summary>模型算法 server。注册 image+telemetry webhook，推理出的轨迹 POST 到 control server。</summary>
+/// <summary>模型算法 server。注册 image+telemetry webhook 并持续续约，推理出的轨迹 POST 到 control server。</summary>
 /// <param name="modelDir">含 telemetry_encoder.onnx、image_encoder.onnx、decoder.onnx 的目录。</param>
 public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
 {
     public const string Url = "http://127.0.0.1:5321";
+
+    private static readonly TimeSpan Lease = TimeSpan.FromSeconds(5);
 
     public async Task RunAsync(CancellationToken ct)
     {
@@ -54,10 +56,9 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
         });
 
         await app.StartAsync(ct);
-        using var registered = await http.PostAsJsonAsync($"{InterfaceServer.Url}/webhook",
-            new WebhookRequest("infer", SubscriptionType.ImageTelemetry, decoder.Freq, $"{Url}/notify"), Json.Options, ct);
-        registered.EnsureSuccessStatusCode();
-        using var ring = new FrameRing((await registered.Content.ReadFromJsonAsync<WebhookResponse>(Json.Options, ct))!);
+        var webhook = new WebhookRequest("infer", SubscriptionType.ImageTelemetry, decoder.Freq, $"{Url}/notify", Lease.TotalSeconds);
+        using var ring = new FrameRing(await RegisterAsync());
+        using var renewing = new Timer(state => _ = RegisterAsync(), null, Lease / 2, Lease / 2);
         await using var stopping = ct.Register(() => latest.Writer.TryComplete());
         long consumed = 0;
         await foreach (var (index, seq, telemetry) in latest.Reader.ReadAllAsync())
@@ -89,6 +90,13 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
         }
         await app.StopAsync();
         DiscardWindow();
+
+        async Task<WebhookResponse> RegisterAsync()
+        {
+            using var response = await http.PostAsJsonAsync($"{InterfaceServer.Url}/webhook", webhook, Json.Options, ct);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<WebhookResponse>(Json.Options, ct))!;
+        }
 
         void DiscardWindow()
         {

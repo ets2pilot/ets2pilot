@@ -14,10 +14,9 @@ public sealed class SubscriberRegistry(HttpClient http, ILogger log)
 
     public Subscriber[] Snapshot => Volatile.Read(ref _subscribers);
 
-    /// <summary>注册订阅，同名订阅被替换。关闭后返回 false。</summary>
+    /// <summary>注册订阅。参数相同的同名订阅续期，参数不同的同名订阅被替换。关闭后返回 false。</summary>
     public bool Add(WebhookRequest request)
     {
-        var subscriber = new Subscriber(request);
         Subscriber? replaced;
         lock (_lock)
         {
@@ -26,23 +25,18 @@ public sealed class SubscriberRegistry(HttpClient http, ILogger log)
                 return false;
             }
             replaced = _subscribers.FirstOrDefault(s => s.Name == request.Name);
+            if (replaced?.Request == request && replaced.TryRenew())
+            {
+                return true;
+            }
+            var subscriber = new Subscriber(request);
             Volatile.Write(ref _subscribers, [.. _subscribers.Where(s => s != replaced), subscriber]);
-            subscriber.Start(http, log, failed => Remove(failed));
+            subscriber.Start(http, log, stopped => Remove(stopped));
         }
         _ = replaced?.StopAsync();
-        log.LogInformation("webhook {Name} 已注册: {Type} {Freq}Hz -> {Url}",
-            request.Name, request.Type, request.Freq, request.Url);
+        log.LogInformation("webhook {Name} 已注册: {Type} {Freq}Hz 租期 {Lease}s -> {Url}",
+            request.Name, request.Type, request.Freq, request.Lease, request.Url);
         return true;
-    }
-
-    public bool Remove(string name)
-    {
-        Subscriber? removed;
-        lock (_lock)
-        {
-            removed = _subscribers.FirstOrDefault(s => s.Name == name);
-        }
-        return removed is not null && Remove(removed);
     }
 
     /// <summary>停止全部投递，并行向每个订阅者发送 end 通知，之后拒绝新的注册。</summary>
@@ -69,18 +63,16 @@ public sealed class SubscriberRegistry(HttpClient http, ILogger log)
         }
     }
 
-    private bool Remove(Subscriber subscriber)
+    private void Remove(Subscriber subscriber)
     {
         lock (_lock)
         {
             if (!_subscribers.Contains(subscriber))
             {
-                return false;
+                return;
             }
             Volatile.Write(ref _subscribers, [.. _subscribers.Where(s => s != subscriber)]);
         }
-        _ = subscriber.StopAsync();
         log.LogInformation("webhook {Name} 已注销", subscriber.Name);
-        return true;
     }
 }

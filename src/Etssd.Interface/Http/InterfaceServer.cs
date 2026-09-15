@@ -4,13 +4,12 @@ using Etssd.Interface.Webhook;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Interface.Http;
 
-/// <summary>POST/DELETE /webhook 与 POST /control。固定端口同时保证本机只有一个 interface 实例。</summary>
+/// <summary>POST /webhook 与 POST /control。固定端口同时保证本机只有一个 interface 实例。</summary>
 public static class InterfaceServer
 {
     public const string Url = "http://127.0.0.1:5320";
@@ -31,9 +30,9 @@ public static class InterfaceServer
 
         app.MapPost("/webhook", (WebhookRequest request) =>
         {
-            if (string.IsNullOrWhiteSpace(request.Name) || !double.IsFinite(request.Freq) || request.Freq <= 0)
+            if (string.IsNullOrWhiteSpace(request.Name) || !IsPositive(request.Freq) || !IsPositive(request.Lease))
             {
-                return Results.BadRequest("name 不能为空，freq 须为正数");
+                return Results.BadRequest("name 不能为空，freq 与 lease 须为正数");
             }
             if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
             {
@@ -41,9 +40,6 @@ public static class InterfaceServer
             }
             return registry.Add(request) ? Results.Ok(Layout) : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
         });
-
-        app.MapDelete("/webhook", ([FromQuery] string name) =>
-            registry.Remove(name) ? Results.NoContent() : Results.NotFound());
 
         app.MapPost("/control", (ControlRequest request) =>
         {
@@ -61,6 +57,8 @@ public static class InterfaceServer
 
         return app;
     }
+
+    private static bool IsPositive(double value) => double.IsFinite(value) && value > 0;
 
     private sealed class ForwardingLoggerProvider(ILoggerFactory loggers) : ILoggerProvider
     {

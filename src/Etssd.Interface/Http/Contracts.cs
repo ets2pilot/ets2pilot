@@ -13,7 +13,8 @@ public enum SubscriptionType
 
 /// <param name="Freq">Hz，按游戏 simulation_time 计时。</param>
 /// <param name="Url">接收 <see cref="Notification"/> 的 http 地址。</param>
-public sealed record WebhookRequest(string Name, SubscriptionType Type, double Freq, string Url);
+/// <param name="Lease">租期，秒，按现实时间计时。到期前以相同参数重新注册即续期，否则注销。</param>
+public sealed record WebhookRequest(string Name, SubscriptionType Type, double Freq, string Url, double Lease);
 
 /// <summary>帧共享内存的布局，见 <see cref="Frames.FrameRing"/>。</summary>
 public sealed record WebhookResponse(int ProtocolVersion, string MappingName, int SlotCount, int Width, int Height);

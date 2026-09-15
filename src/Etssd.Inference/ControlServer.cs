@@ -15,7 +15,7 @@ namespace Etssd.Inference;
 /// <param name="YawRate">[H]。</param>
 public sealed record TrajectoryRequest(double Freq, byte[] Telemetry, double[] Speed, double[] YawRate);
 
-/// <summary>控制算法 server。注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 interface 的 /control。</summary>
+/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 interface 的 /control。</summary>
 public sealed class ControlServer(HttpClient http)
 {
     public const string Url = "http://127.0.0.1:5322";
@@ -30,11 +30,13 @@ public sealed class ControlServer(HttpClient http)
         builder.Services.ConfigureHttpJsonOptions(o => Json.Configure(o.SerializerOptions));
         await using var app = builder.Build();
 
-        app.MapPost("/trajectory", (TrajectoryRequest trajectory) =>
+        app.MapPost("/trajectory", async (TrajectoryRequest trajectory) =>
         {
             var anchor = VehicleState.From(trajectory.Telemetry);
             _plan = new Plan(anchor.TimeUs, trajectory.Freq,
                 new Controller(anchor, trajectory.Speed, trajectory.YawRate, trajectory.Freq));
+            using var registered = await http.PostAsJsonAsync($"{InterfaceServer.Url}/webhook",
+                new WebhookRequest("control", SubscriptionType.Telemetry, 60, $"{Url}/notify", trajectory.Speed.Length / trajectory.Freq), Json.Options);
             return Results.NoContent();
         });
 
@@ -58,9 +60,6 @@ public sealed class ControlServer(HttpClient http)
         });
 
         await app.StartAsync(ct);
-        using var registered = await http.PostAsJsonAsync($"{InterfaceServer.Url}/webhook",
-            new WebhookRequest("control", SubscriptionType.Telemetry, 60, $"{Url}/notify"), Json.Options, ct);
-        registered.EnsureSuccessStatusCode();
         try
         {
             await Task.Delay(Timeout.Infinite, ct);
