@@ -12,6 +12,7 @@ public static class Manifest
     public static IReadOnlyList<IComponent> All(AppConfig config, ILoggerFactory loggers) =>
     [
         new BridgeComponent(loggers),
+        new ControlComponent(loggers),
         new InferenceComponent(config, loggers),
     ];
 }

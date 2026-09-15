@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     {
         Vm.Logs.CollectionChanged += OnLogsChanged;
         _ = Vm.RunBridgeAsync();
+        _ = Vm.RunControlAsync();
         await Vm.RunChecksAsync();
     }
 

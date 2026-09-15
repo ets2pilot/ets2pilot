@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Etssd.Inference;
 
-/// <summary>作为 bridge 的回调客户端驾驶：模型算法 server 出轨迹，控制算法 server 跟踪轨迹。</summary>
+/// <summary>作为 bridge 的回调客户端运行 ONNX 模型，轨迹交给 control 组件跟踪。</summary>
 public sealed class InferenceComponent(AppConfig config, ILoggerFactory loggers) : IComponent
 {
     private readonly ILogger _log = loggers.CreateLogger<InferenceComponent>();
@@ -15,7 +15,7 @@ public sealed class InferenceComponent(AppConfig config, ILoggerFactory loggers)
         _log.LogInformation("infer running, model: {Model}", config.Model);
         // loopback 请求不能走 HTTP_PROXY
         using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
-        await Task.WhenAll(new ControlServer(http).RunAsync(ct), new ModelServer(config.Model, http, loggers.CreateLogger<ModelServer>()).RunAsync(ct));
+        await new ModelServer(config.Model, http, loggers.CreateLogger<ModelServer>()).RunAsync(ct);
         _log.LogInformation("infer stopped");
     }
 }

@@ -9,7 +9,7 @@ namespace Etssd.Gui;
 
 public sealed record CheckRow(string Name, CheckStatus Status, string Message, string? Link);
 
-/// <summary>bridge 随窗口的生命周期运行，infer 由 Run/Stop 控制。</summary>
+/// <summary>bridge 与 control 各自随窗口的生命周期运行，infer 由 Run/Stop 控制。</summary>
 public sealed class MainViewModel : ObservableObject
 {
     private const int MaxLogLines = 2000;
@@ -17,10 +17,12 @@ public sealed class MainViewModel : ObservableObject
     private readonly AppConfig _config;
     private readonly ILogger _log;
     private readonly IComponent _bridge;
+    private readonly IComponent _control;
     private readonly IComponent _infer;
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _inferCts;
     private Task _bridgeRun = Task.CompletedTask;
+    private Task _controlRun = Task.CompletedTask;
     private bool _isRunning;
 
     public MainViewModel(AppConfig config, ILoggerFactory loggers, UiLoggerProvider uiLog, Dispatcher dispatcher)
@@ -29,6 +31,7 @@ public sealed class MainViewModel : ObservableObject
         _log = loggers.CreateLogger<MainViewModel>();
         var components = Manifest.All(config, loggers);
         _bridge = components.Single(c => c.Name == "bridge");
+        _control = components.Single(c => c.Name == "control");
         _infer = components.Single(c => c.Name == "infer");
         uiLog.EntryLogged += line => dispatcher.BeginInvoke(() =>
         {
@@ -77,6 +80,9 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>运行 bridge 直到 <see cref="ShutdownAsync"/>。</summary>
     public Task RunBridgeAsync() => _bridgeRun = RunOne(_bridge, _lifetime.Token);
 
+    /// <summary>运行 control 直到 <see cref="ShutdownAsync"/>。</summary>
+    public Task RunControlAsync() => _controlRun = RunOne(_control, _lifetime.Token);
+
     public async Task StartAsync()
     {
         if (IsRunning)
@@ -97,7 +103,7 @@ public sealed class MainViewModel : ObservableObject
     public async Task ShutdownAsync()
     {
         await _lifetime.CancelAsync();
-        await _bridgeRun;
+        await Task.WhenAll(_bridgeRun, _controlRun);
     }
 
     public async Task RunChecksAsync()
