@@ -8,14 +8,14 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="Run" Width="80" Click="Run_Click" IsEnabled="{Binding CanRun}" />
-            <Button Content="Stop" Width="80" Margin="8,0,0,0" Click="Stop_Click" IsEnabled="{Binding IsRunning}" />
+            <Button Content="Run" Width="80" Command="{Binding InferCommand}" />
+            <Button Content="Stop" Width="80" Margin="8,0,0,0" Command="{Binding InferCancelCommand}" />
         </StackPanel>
         <TabControl Grid.Row="1">
             <TabItem Header="依赖检查">
                 <DockPanel Margin="8">
                     <Button DockPanel.Dock="Top" Content="重新检查" Width="100" HorizontalAlignment="Left"
-                            Margin="0,0,0,8" Click="Check_Click" />
+                            Margin="0,0,0,8" Command="{Binding RunChecksCommand}" />
                     <ListView ItemsSource="{Binding Checks}">
                         <ListView.View>
                             <GridView>

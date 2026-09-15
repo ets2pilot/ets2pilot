@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Etssd.Bridge;
 using Etssd.Core;
 using Etssd.Core.Models;
@@ -12,7 +14,7 @@ namespace Etssd.Gui;
 public sealed record CheckRow(string Name, CheckStatus Status, string Message, string? Link);
 
 /// <summary>bridge 与 control 各自随窗口的生命周期运行，infer 由 Run/Stop 控制。</summary>
-public sealed class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject
 {
     private const int MaxLogLines = 2000;
 
@@ -22,10 +24,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly IComponent _bridge;
     private readonly IComponent _control;
     private readonly CancellationTokenSource _lifetime = new();
-    private CancellationTokenSource? _inferCts;
     private Task _bridgeRun = Task.CompletedTask;
     private Task _controlRun = Task.CompletedTask;
-    private bool _isRunning;
 
     public MainViewModel(AppConfig config, ILoggerFactory loggers, UiLoggerProvider uiLog, Dispatcher dispatcher)
     {
@@ -48,44 +48,22 @@ public sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<string> Logs { get; } = [];
 
-    public bool IsRunning
-    {
-        get => _isRunning;
-        private set
-        {
-            if (SetField(ref _isRunning, value))
-            {
-                OnPropertyChanged(nameof(CanRun));
-            }
-        }
-    }
-
-    public bool CanRun => !IsRunning;
-
     /// <summary>运行 bridge 直到 <see cref="ShutdownAsync"/>。</summary>
     public Task RunBridgeAsync() => _bridgeRun = RunOne(_bridge, _lifetime.Token);
 
     /// <summary>运行 control 直到 <see cref="ShutdownAsync"/>。</summary>
     public Task RunControlAsync() => _controlRun = RunOne(_control, _lifetime.Token);
 
-    public async Task StartAsync()
+    /// <summary>生成 InferCommand 与 InferCancelCommand，执行期间 InferCommand 不可用。</summary>
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task InferAsync(CancellationToken token)
     {
-        if (IsRunning)
-        {
-            return;
-        }
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-        _inferCts = cts;
-        IsRunning = true;
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, token);
         if (await ResolveModelDirAsync(cts.Token) is { } modelDir)
         {
             await RunOne(new InferenceComponent(modelDir, _loggers), cts.Token);
         }
-        _inferCts = null;
-        IsRunning = false;
     }
-
-    public void Stop() => _inferCts?.Cancel();
 
     /// <summary>模型不可用或已取消时返回 null。</summary>
     private async Task<string?> ResolveModelDirAsync(CancellationToken ct)
@@ -119,7 +97,8 @@ public sealed class MainViewModel : ObservableObject
         await Task.WhenAll(_bridgeRun, _controlRun);
     }
 
-    public async Task RunChecksAsync()
+    [RelayCommand]
+    private async Task RunChecksAsync()
     {
         Checks.Clear();
         foreach (var check in Etssd.Doctor.Checks.All)

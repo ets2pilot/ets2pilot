@@ -43,7 +43,7 @@ public partial class MainWindow : Window
         Vm.Logs.CollectionChanged += OnLogsChanged;
         _ = Vm.RunBridgeAsync();
         _ = Vm.RunControlAsync();
-        await Vm.RunChecksAsync();
+        await Vm.RunChecksCommand.ExecuteAsync(null);
     }
 
     private void OnLogsChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -53,12 +53,6 @@ public partial class MainWindow : Window
             LogList.ScrollIntoView(LogList.Items[^1]);
         }
     }
-
-    private async void Run_Click(object sender, RoutedEventArgs e) => await Vm.StartAsync();
-
-    private void Stop_Click(object sender, RoutedEventArgs e) => Vm.Stop();
-
-    private async void Check_Click(object sender, RoutedEventArgs e) => await Vm.RunChecksAsync();
 
     private void Link_RequestNavigate(object sender, RequestNavigateEventArgs e)
     {

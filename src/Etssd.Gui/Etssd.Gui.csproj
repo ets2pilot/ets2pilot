@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Etssd.Core\Etssd.Core.csproj" />
     <ProjectReference Include="..\Etssd.Bridge\Etssd.Bridge.csproj" />
     <ProjectReference Include="..\Etssd.Inference\Etssd.Inference.csproj" />
