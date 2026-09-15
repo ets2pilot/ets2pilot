@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Etssd.Bridge.Frames;
 using Microsoft.Extensions.Logging;
 using SharpGen.Runtime;
@@ -6,11 +7,17 @@ using Vortice;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using Vortice.Mathematics;
+using Windows.Graphics.Capture;
+using Windows.Graphics.DirectX;
+using Windows.Graphics.DirectX.Direct3D11;
+using Windows.UI;
+using WinRT;
 
 namespace Etssd.Bridge.Sensing;
 
 /// <summary>
-/// 截取 ETS2 窗口 client 区域当前的屏幕图像，经 D3D11 Video Processor 缩放到 <see cref="FrameRing"/> 的分辨率后写入 slot。
+/// 用 Windows.Graphics.Capture 截取 ETS2 窗口的 client 区域，经 D3D11 Video Processor 缩放到 <see cref="FrameRing"/> 的分辨率后写入 slot。
 /// </summary>
 /// <remarks>必须在单一线程上构造与调用，构造时把该线程设为 per-monitor DPI aware 以取得物理像素坐标。</remarks>
 public sealed class ScreenCapture : IDisposable
@@ -27,44 +34,42 @@ public sealed class ScreenCapture : IDisposable
         Win32.SetThreadDpiAwarenessContext(Win32.DpiAwarenessPerMonitorV2);
     }
 
-    /// <summary>把上次写入之后的新屏幕图像写入第 seq 帧。窗口不可截或 maxWait 内没有新图像时返回 false 且不改动 ring。</summary>
+    /// <summary>把上次写入之后的新窗口图像写入第 seq 帧。窗口不可截或 maxWait 内没有新图像时返回 false 且不改动 ring。</summary>
     public bool TryCapture(FrameRing ring, ulong seq, TimeSpan maxWait)
     {
-        if (!TryLocateWindow(out var monitor, out var client, out var rejection))
+        var hwnd = Win32.FindWindowW(null, WindowTitle);
+        if (hwnd == IntPtr.Zero)
         {
-            Reject(rejection);
+            Reject("未找到 ETS2 窗口");
             return false;
         }
-        if (_pipeline is null || _pipeline.Monitor != monitor)
+        Win32.GetClientRect(hwnd, out var rect);
+        var (width, height) = (rect.Right - rect.Left, rect.Bottom - rect.Top);
+        if (width * 9 != height * 16)
+        {
+            Reject($"ETS2 窗口 {width}x{height} 不是 16:9");
+            return false;
+        }
+        if (_pipeline is null || _pipeline.Hwnd != hwnd || _pipeline.Width != width || _pipeline.Height != height)
         {
             _pipeline?.Dispose();
-            _pipeline = Pipeline.Create(monitor);
+            _pipeline = new Pipeline(hwnd, width, height);
         }
-        var output = _pipeline.DesktopRect;
-        if (client.Left < output.Left || client.Top < output.Top ||
-            client.Right > output.Right || client.Bottom > output.Bottom)
+        using var frame = _pipeline.TakeFrame(maxWait);
+        if (frame is null)
         {
-            Reject("ETS2 窗口跨越多个显示器");
+            Reject($"{maxWait.TotalMilliseconds:F0}ms 内没有新的窗口图像");
             return false;
         }
-        switch (_pipeline.Refresh(maxWait))
-        {
-            case RefreshResult.AccessLost:
-                _pipeline.Dispose();
-                _pipeline = null;
-                Reject("桌面复制失效，重建中");
-                return false;
-            case RefreshResult.Stale:
-                Reject($"{maxWait.TotalMilliseconds:F0}ms 内没有新的桌面图像");
-                return false;
-        }
-        var source = new RawRect(
-            client.Left - output.Left, client.Top - output.Top,
-            client.Right - output.Left, client.Bottom - output.Top);
-        _pipeline.Write(source, ring, seq);
+        // 窗口帧的原点是 DWMWA_EXTENDED_FRAME_BOUNDS 的左上角，含标题栏与边框
+        Win32.DwmGetWindowAttribute(hwnd, Win32.DwmwaExtendedFrameBounds, out var bounds, Marshal.SizeOf<Win32.Rect>());
+        var origin = new Win32.Point();
+        Win32.ClientToScreen(hwnd, ref origin);
+        var source = new RawRect(origin.X - bounds.Left, origin.Y - bounds.Top, origin.X - bounds.Left + width, origin.Y - bounds.Top + height);
+        _pipeline.Write(frame, source, ring, seq);
         if (_lastRejection is not null)
         {
-            _log.LogInformation("开始截图 {Width}x{Height}", source.Right - source.Left, source.Bottom - source.Top);
+            _log.LogInformation("开始截图 {Width}x{Height}", width, height);
             _lastRejection = null;
         }
         return true;
@@ -85,76 +90,56 @@ public sealed class ScreenCapture : IDisposable
         }
     }
 
-    private static bool TryLocateWindow(out IntPtr monitor, out RawRect client, out string rejection)
-    {
-        monitor = IntPtr.Zero;
-        client = default;
-        var hwnd = Win32.FindWindowW(null, WindowTitle);
-        if (hwnd == IntPtr.Zero)
-        {
-            rejection = "未找到 ETS2 窗口";
-            return false;
-        }
-        // 与 dataset 一致，窗口不在前台时画面可能被遮挡
-        if (Win32.IsIconic(hwnd) || Win32.GetForegroundWindow() != hwnd)
-        {
-            rejection = "ETS2 窗口不在前台";
-            return false;
-        }
-        Win32.GetClientRect(hwnd, out var rect);
-        var origin = new Win32.Point();
-        Win32.ClientToScreen(hwnd, ref origin);
-        var (width, height) = (rect.Right - rect.Left, rect.Bottom - rect.Top);
-        if (width <= 0 || width * 9 != height * 16)
-        {
-            rejection = $"ETS2 窗口 {width}x{height} 不是 16:9";
-            return false;
-        }
-        monitor = Win32.MonitorFromWindow(hwnd, Win32.MonitorDefaultToNull);
-        client = new RawRect(origin.X, origin.Y, origin.X + width, origin.Y + height);
-        rejection = "";
-        return monitor != IntPtr.Zero;
-    }
-
-    private enum RefreshResult
-    {
-        Fresh,
-        Stale,
-        AccessLost,
-    }
-
-    /// <summary>绑定到一个显示器的 D3D11 资源，显示器或桌面模式变化时整体重建。</summary>
+    /// <summary>绑定到一个窗口及其 client 尺寸的 capture session 与 D3D11 资源，任一变化时整体重建。</summary>
     private sealed class Pipeline : IDisposable
     {
+        private readonly AutoResetEvent _arrived = new(false);
         private readonly ID3D11Device _device;
         private readonly ID3D11DeviceContext _context;
-        private readonly ID3D11VideoContext1 _videoContext;
-        private readonly IDXGIOutputDuplication _duplication;
-        private readonly ID3D11Texture2D _desktop;
+        private readonly ID3D11VideoContext _videoContext;
+        private readonly IDirect3DDevice _winrtDevice;
+        private readonly Direct3D11CaptureFramePool _pool;
+        private readonly GraphicsCaptureSession _session;
+        private readonly ID3D11Texture2D _client;
         private readonly ID3D11VideoProcessorEnumerator _enumerator;
         private readonly ID3D11VideoProcessor _processor;
         private readonly ID3D11VideoProcessorInputView _inputView;
         private readonly ID3D11Texture2D _scaled;
         private readonly ID3D11VideoProcessorOutputView _outputView;
         private readonly ID3D11Texture2D _staging;
-        private bool _fresh; // _desktop 含上次 Write 之后的桌面更新
+        private Direct3D11CaptureFrame? _latest;
 
-        private Pipeline(IntPtr monitor, RawRect desktopRect, IDXGIAdapter1 adapter, IDXGIOutput1 output)
+        public Pipeline(IntPtr hwnd, int width, int height)
         {
-            Monitor = monitor;
-            DesktopRect = desktopRect;
-            D3D11.D3D11CreateDevice(
-                adapter, DriverType.Unknown,
+            Hwnd = hwnd;
+            Width = width;
+            Height = height;
+            D3D11.D3D11CreateDevice(null, DriverType.Hardware,
                 DeviceCreationFlags.BgraSupport | DeviceCreationFlags.VideoSupport,
                 [FeatureLevel.Level_11_0], out _device!).CheckError();
             _context = _device.ImmediateContext;
-            _videoContext = _context.QueryInterface<ID3D11VideoContext1>();
+            _videoContext = _context.QueryInterface<ID3D11VideoContext>();
             using var videoDevice = _device.QueryInterface<ID3D11VideoDevice>();
-            _duplication = output.DuplicateOutput(_device);
+            using (var dxgiDevice = _device.QueryInterface<IDXGIDevice>())
+            {
+                Marshal.ThrowExceptionForHR(CreateDirect3D11DeviceFromDXGIDevice(dxgiDevice.NativePointer, out var inspectable));
+                using var _ = new ComObject(inspectable);
+                _winrtDevice = MarshalInterface<IDirect3DDevice>.FromAbi(inspectable);
+            }
 
-            var (inWidth, inHeight) = (desktopRect.Right - desktopRect.Left, desktopRect.Bottom - desktopRect.Top);
-            _desktop = _device.CreateTexture2D(new Texture2DDescription(
-                Format.B8G8R8A8_UNorm, (uint)inWidth, (uint)inHeight, 1, 1, BindFlags.RenderTarget));
+            var item = GraphicsCaptureItem.TryCreateFromWindowId(new WindowId((ulong)hwnd))
+                ?? throw new InvalidOperationException("无法为 ETS2 窗口创建 GraphicsCaptureItem");
+            _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_winrtDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, item.Size);
+            _pool.FrameArrived += OnFrameArrived;
+            _session = _pool.CreateCaptureSession(item);
+            _session.IsCursorCaptureEnabled = false;
+            _session.IsBorderRequired = false;
+            // 默认 16ms，高刷新率下会丢掉大部分帧
+            _session.MinUpdateInterval = TimeSpan.FromMilliseconds(1);
+            _session.StartCapture();
+
+            _client = _device.CreateTexture2D(new Texture2DDescription(
+                Format.B8G8R8A8_UNorm, (uint)width, (uint)height, 1, 1, BindFlags.RenderTarget));
             _scaled = _device.CreateTexture2D(new Texture2DDescription(
                 Format.B8G8R8A8_UNorm, FrameRing.Width, FrameRing.Height, 1, 1, BindFlags.RenderTarget));
             _staging = _device.CreateTexture2D(new Texture2DDescription(
@@ -164,20 +149,15 @@ public sealed class ScreenCapture : IDisposable
             var content = new VideoProcessorContentDescription
             {
                 InputFrameFormat = VideoFrameFormat.Progressive,
-                InputWidth = (uint)inWidth,
-                InputHeight = (uint)inHeight,
+                InputWidth = (uint)width,
+                InputHeight = (uint)height,
                 OutputWidth = FrameRing.Width,
                 OutputHeight = FrameRing.Height,
                 Usage = VideoUsage.PlaybackNormal,
             };
             _enumerator = videoDevice.CreateVideoProcessorEnumerator(content);
-            var support = _enumerator.CheckVideoProcessorFormat(Format.B8G8R8A8_UNorm);
-            if (!support.HasFlag(VideoProcessorFormatSupport.Input) || !support.HasFlag(VideoProcessorFormatSupport.Output))
-            {
-                throw new NotSupportedException("显卡的 Video Processor 不支持 BGRA 输入输出");
-            }
             _processor = videoDevice.CreateVideoProcessor(_enumerator, 0);
-            _inputView = videoDevice.CreateVideoProcessorInputView(_desktop, _enumerator, new VideoProcessorInputViewDescription
+            _inputView = videoDevice.CreateVideoProcessorInputView(_client, _enumerator, new VideoProcessorInputViewDescription
             {
                 ViewDimension = VideoProcessorInputViewDimension.Texture2D,
             });
@@ -187,90 +167,45 @@ public sealed class ScreenCapture : IDisposable
             });
 
             var full = new RawRect(0, 0, FrameRing.Width, FrameRing.Height);
-            _videoContext.VideoProcessorSetStreamFrameFormat(_processor, 0, VideoFrameFormat.Progressive);
-            _videoContext.VideoProcessorSetStreamAutoProcessingMode(_processor, 0, false);
-            _videoContext.VideoProcessorSetStreamColorSpace1(_processor, 0, ColorSpaceType.RgbFullG22NoneP709);
-            _videoContext.VideoProcessorSetOutputColorSpace1(_processor, ColorSpaceType.RgbFullG22NoneP709);
             _videoContext.VideoProcessorSetStreamDestRect(_processor, 0, true, full);
             _videoContext.VideoProcessorSetOutputTargetRect(_processor, true, full);
         }
 
-        public IntPtr Monitor { get; }
+        public IntPtr Hwnd { get; }
 
-        /// <summary>显示器在虚拟桌面中的物理像素坐标。</summary>
-        public RawRect DesktopRect { get; }
+        public int Width { get; }
 
-        public static Pipeline Create(IntPtr monitor)
-        {
-            using var factory = DXGI.CreateDXGIFactory1<IDXGIFactory1>();
-            for (uint i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
-            {
-                using (adapter)
-                {
-                    for (uint j = 0; adapter.EnumOutputs(j, out var output).Success; j++)
-                    {
-                        using (output)
-                        {
-                            var desc = output.Description;
-                            if (desc.Monitor != monitor)
-                            {
-                                continue;
-                            }
-                            using var output1 = output.QueryInterface<IDXGIOutput1>();
-                            return new Pipeline(monitor, desc.DesktopCoordinates, adapter, output1);
-                        }
-                    }
-                }
-            }
-            throw new InvalidOperationException("ETS2 窗口所在显示器没有对应的 DXGI output");
-        }
+        public int Height { get; }
 
-        /// <summary>把桌面复制中尚未取走的更新拷入 _desktop。上次 <see cref="Write"/> 之后还没有更新时最多等待 maxWait。</summary>
-        /// <remarks>
-        /// 积压的更新在下一次 present 时才合并成一帧交付，新帧生成期间 AcquireNextFrame(0) 返回 WaitTimeout，
-        /// 所以 0 超时不能用来判断有无新图像。
-        /// </remarks>
-        public RefreshResult Refresh(TimeSpan maxWait)
+        /// <summary>取走上次调用之后到达的最新一帧，没有时最多等待 maxWait。调用方负责 Dispose 返回的帧。</summary>
+        public Direct3D11CaptureFrame? TakeFrame(TimeSpan maxWait)
         {
             var start = Stopwatch.GetTimestamp();
             while (true)
             {
+                if (Interlocked.Exchange(ref _latest, null) is { } frame)
+                {
+                    return frame;
+                }
                 var remaining = maxWait - Stopwatch.GetElapsedTime(start);
-                // uint.MaxValue 表示 INFINITE
-                var timeoutMs = _fresh || remaining <= TimeSpan.Zero
-                    ? 0u
-                    : (uint)Math.Ceiling(Math.Min(remaining.TotalMilliseconds, uint.MaxValue - 1));
-                var result = _duplication.AcquireNextFrame(timeoutMs, out var info, out var frame);
-                if (result == Vortice.DXGI.ResultCode.WaitTimeout)
+                if (remaining <= TimeSpan.Zero || !_arrived.WaitOne(remaining))
                 {
-                    return _fresh ? RefreshResult.Fresh : RefreshResult.Stale;
-                }
-                if (result == Vortice.DXGI.ResultCode.AccessLost)
-                {
-                    return RefreshResult.AccessLost;
-                }
-                result.CheckError();
-                try
-                {
-                    // 只有鼠标指针变化的更新不带新的桌面图像
-                    if (info.LastPresentTime != 0)
-                    {
-                        using var texture = frame.QueryInterface<ID3D11Texture2D>();
-                        _context.CopyResource(_desktop, texture);
-                        _fresh = true;
-                    }
-                }
-                finally
-                {
-                    frame.Dispose();
-                    _duplication.ReleaseFrame();
+                    return null;
                 }
             }
         }
 
-        public unsafe void Write(RawRect source, FrameRing ring, ulong seq)
+        /// <param name="source">client 区域在 frame 中的像素矩形。</param>
+        public unsafe void Write(Direct3D11CaptureFrame frame, RawRect source, FrameRing ring, ulong seq)
         {
-            _videoContext.VideoProcessorSetStreamSourceRect(_processor, 0, true, source);
+            // 帧池纹理轮换使用，拷进固定纹理后才能绑定 Video Processor 的 input view
+            using (var surface = new ComObject(MarshalInterface<IDirect3DSurface>.FromManaged(frame.Surface)))
+            using (var access = surface.QueryInterface<IDirect3DDxgiInterfaceAccess>())
+            using (var texture = access.GetInterface<ID3D11Texture2D>())
+            {
+                _context.CopySubresourceRegion(_client, 0, 0, 0, 0, texture, 0,
+                    new Box(source.Left, source.Top, 0, source.Right, source.Bottom, 1));
+            }
             _videoContext.VideoProcessorBlt(_processor, _outputView, 0, 1,
                 [new VideoProcessorStream { Enable = true, InputSurface = _inputView }]);
             _context.CopyResource(_staging, _scaled);
@@ -287,7 +222,6 @@ public sealed class ScreenCapture : IDisposable
                         .CopyTo(pixels.Slice(y * rowBytes, rowBytes));
                 }
                 ring.EndWrite(seq);
-                _fresh = false;
             }
             finally
             {
@@ -297,17 +231,35 @@ public sealed class ScreenCapture : IDisposable
 
         public void Dispose()
         {
+            _session.Dispose();
+            _pool.Dispose();
+            Interlocked.Exchange(ref _latest, null)?.Dispose();
+            _arrived.Dispose();
             _staging.Dispose();
             _outputView.Dispose();
             _scaled.Dispose();
             _inputView.Dispose();
             _processor.Dispose();
             _enumerator.Dispose();
-            _desktop.Dispose();
-            _duplication.Dispose();
+            _client.Dispose();
+            _winrtDevice.Dispose();
             _videoContext.Dispose();
             _context.Dispose();
             _device.Dispose();
+        }
+
+        [DllImport("d3d11.dll")]
+        private static extern int CreateDirect3D11DeviceFromDXGIDevice(IntPtr dxgiDevice, out IntPtr graphicsDevice);
+
+        /// <remarks>帧池只有 2 个缓冲，不及时取走时新帧被丢弃，所以在回调线程上随到随取、只留最新一帧。</remarks>
+        private void OnFrameArrived(Direct3D11CaptureFramePool sender, object args)
+        {
+            if (sender.TryGetNextFrame() is not { } frame)
+            {
+                return;
+            }
+            Interlocked.Exchange(ref _latest, frame)?.Dispose();
+            _arrived.Set();
         }
     }
 }

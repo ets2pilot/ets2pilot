@@ -6,7 +6,7 @@ internal static class Win32
 {
     public static readonly IntPtr DpiAwarenessPerMonitorV2 = -4;
 
-    public const uint MonitorDefaultToNull = 0;
+    public const int DwmwaExtendedFrameBounds = 9;
 
     public const uint InputKeyboard = 1;
 
@@ -96,8 +96,8 @@ internal static class Win32
     [DllImport("user32.dll")]
     public static extern bool ClientToScreen(IntPtr hwnd, ref Point point);
 
-    [DllImport("user32.dll")]
-    public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out Rect value, int size);
 
     [DllImport("user32.dll")]
     public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
