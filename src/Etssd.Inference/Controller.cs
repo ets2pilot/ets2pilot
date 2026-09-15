@@ -16,7 +16,7 @@ public readonly record struct VehicleState(ulong TimeUs, double Speed, double Ya
 
 /// <param name="Steer">[-1, 1]，正为左。</param>
 /// <param name="Accel">[-1, 1]，正油门负刹车。</param>
-public readonly record struct Command(double Steer, double Accel);
+public readonly record struct ControlCommand(double Steer, double Accel);
 
 /// <summary>固定规划时刻的预测逐步 (v, ω)，按帧偏移与当前状态给出控制量。移植自 model repo 的 infer/controller.py。</summary>
 public sealed class Controller
@@ -56,7 +56,7 @@ public sealed class Controller
     public int Horizon { get; }
 
     /// <summary>规划后 offset 帧、处于 state 时应施加的控制量。</summary>
-    public Command At(double offset, VehicleState state)
+    public ControlCommand At(double offset, VehicleState state)
     {
         var error = Interp(_speed, offset + SpeedPreviewFrames) - state.Speed;
         if (_lastOffset is { } last)
@@ -67,7 +67,7 @@ public sealed class Controller
         _lastOffset = offset;
         // 下坡时重力沿坡面的分量替车加速，需要的加速度随之减少
         var accel = error / (SpeedPreviewFrames * _frameS) - Gravity * Math.Sin(state.Pitch) + _integral;
-        return new Command(Steer(offset, state), Pedal(accel));
+        return new ControlCommand(Steer(offset, state), Pedal(accel));
     }
 
     private double Steer(double offset, VehicleState state)
