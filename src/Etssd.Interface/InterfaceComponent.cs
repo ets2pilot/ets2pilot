@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Etssd.Interface;
 
-/// <summary>截图、遥测、帧共享内存、webhook 通知与 vJoy 控制。</summary>
+/// <summary>截图、相机回正、遥测、帧共享内存、webhook 通知与 vJoy 控制。</summary>
 public sealed class InterfaceComponent(ILoggerFactory loggers) : IComponent
 {
     private static readonly TimeSpan ServerStopTimeout = TimeSpan.FromMilliseconds(500);
@@ -30,11 +30,13 @@ public sealed class InterfaceComponent(ILoggerFactory loggers) : IComponent
         using var capture = new TelemetryCapture(loggers.CreateLogger<TelemetryCapture>());
         var telemetryLoop = new TelemetryLoop(capture.Subscribe(), registry);
         var imageLoop = new ImageTelemetryLoop(capture.Subscribe(), registry, loggers.CreateLogger<ImageTelemetryLoop>());
+        var cameraLoop = new CameraResetLoop(registry, loggers.CreateLogger<CameraResetLoop>());
         Task[] loops =
         [
             capture.RunAsync(stop.Token),
             telemetryLoop.RunAsync(stop.Token),
             imageLoop.RunAsync(stop.Token),
+            cameraLoop.RunAsync(stop.Token),
         ];
         try
         {
