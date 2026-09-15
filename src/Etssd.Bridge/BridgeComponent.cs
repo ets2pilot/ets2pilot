@@ -7,6 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Etssd.Bridge;
 
+/// <param name="Freq">Hz</param>
+/// <param name="Dropped">订阅建立以来丢弃的通知条数。</param>
+public sealed record SubscriptionInfo(string Name, SubscriptionType Type, double Freq, long Dropped);
+
 /// <summary>截图、相机回正、遥测、帧共享内存、webhook 通知与 vJoy 控制。</summary>
 public sealed class BridgeComponent(ILoggerFactory loggers) : IComponent
 {
@@ -14,7 +18,15 @@ public sealed class BridgeComponent(ILoggerFactory loggers) : IComponent
 
     private readonly ILogger _log = loggers.CreateLogger<BridgeComponent>();
 
+    private volatile SubscriberRegistry? _registry;
+
     public string Name => "bridge";
+
+    /// <summary>当前的 webhook 订阅，未运行时为空。</summary>
+    public IReadOnlyList<SubscriptionInfo> Subscriptions =>
+        _registry is { } registry
+            ? [.. registry.Snapshot.Select(s => new SubscriptionInfo(s.Name, s.Request.Type, s.Request.Freq, s.Dropped))]
+            : [];
 
     /// <summary>ct 取消后先向全部订阅者发送 end 通知再关闭 HTTP 服务，总耗时须小于 CLI 的 2s 终止等待。</summary>
     public async Task RunAsync(CancellationToken ct)
@@ -22,6 +34,7 @@ public sealed class BridgeComponent(ILoggerFactory loggers) : IComponent
         // loopback 通知不能走 HTTP_PROXY
         using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
         var registry = new SubscriberRegistry(http, loggers.CreateLogger<SubscriberRegistry>());
+        _registry = registry;
         using var vjoy = VJoyController.TryAcquire(_log);
         await using var app = BridgeServer.Build(registry, vjoy, loggers);
         await app.StartAsync(CancellationToken.None);
@@ -47,6 +60,7 @@ public sealed class BridgeComponent(ILoggerFactory loggers) : IComponent
         }
         finally
         {
+            _registry = null;
             await registry.EndAllAsync();
             using var stopTimeout = new CancellationTokenSource(ServerStopTimeout);
             await app.StopAsync(stopTimeout.Token);

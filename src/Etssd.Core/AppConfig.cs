@@ -4,18 +4,22 @@ using Tomlyn;
 
 namespace Etssd.Core;
 
-/// <summary>config.toml 的内容。GUI 写入，CLI 只读，CLI 参数覆盖不落盘。</summary>
+/// <summary>config.toml 的内容。只有 GUI 设置页写入，其余进程只读。</summary>
 public sealed record AppConfig
 {
-    public const string DefaultModel =
-        "https://github.com/ets2-self-driving/ets2-self-driving-model/releases/latest";
-
     private static readonly TomlSerializerOptions TomlOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
 
-    public string Model { get; set; } = DefaultModel;
+    /// <summary>hub 上的模型仓库，形如 owner/name。</summary>
+    public string ModelRepo { get; set; } = "ets2-self-driving/ets2-self-driving-model";
+
+    /// <summary>分支、标签或 commit sha，空表示 main。</summary>
+    public string ModelRevision { get; set; } = "";
+
+    /// <summary>hub 地址，空表示 https://huggingface.co。</summary>
+    public string HfEndpoint { get; set; } = "";
 
     /// <summary>读取配置文件，文件缺失或损坏时返回默认值。</summary>
     public static AppConfig Load(ILogger logger)

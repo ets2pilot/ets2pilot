@@ -22,6 +22,7 @@ public sealed class Subscriber
     private readonly TimeSpan _lease;
     private ulong? _nextDueUs;
     private long _dropped;
+    private long _loggedDropped;
     private Task _sending = Task.CompletedTask;
 
     public Subscriber(WebhookRequest request)
@@ -43,6 +44,9 @@ public sealed class Subscriber
     public WebhookRequest Request { get; }
 
     public string Name => Request.Name;
+
+    /// <summary>订阅建立以来丢弃的通知条数。</summary>
+    public long Dropped => Volatile.Read(ref _dropped);
 
     /// <summary>续期。租期已过时返回 false，此时投递已停止。</summary>
     public bool TryRenew()
@@ -115,8 +119,9 @@ public sealed class Subscriber
                     }
                     return;
                 }
-                if (Interlocked.Exchange(ref _dropped, 0) is var dropped and > 0)
+                if (Interlocked.Read(ref _dropped) - _loggedDropped is var dropped and > 0)
                 {
+                    _loggedDropped += dropped;
                     log.LogWarning("webhook {Name} 处理过慢，丢弃 {Count} 条通知", Name, dropped);
                 }
             }
