@@ -4,7 +4,6 @@
     <Project Path="src/Etssd.Bridge/Etssd.Bridge.csproj" />
     <Project Path="src/Etssd.Inference/Etssd.Inference.csproj" />
     <Project Path="src/Etssd.Doctor/Etssd.Doctor.csproj" />
-    <Project Path="src/Etssd.Components/Etssd.Components.csproj" />
     <Project Path="src/Etssd.Cli/Etssd.Cli.csproj" />
     <Project Path="src/Etssd.Gui/Etssd.Gui.csproj" />
   </Folder>

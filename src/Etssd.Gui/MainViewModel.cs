@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
-using Etssd.Components;
+using Etssd.Bridge;
 using Etssd.Core;
+using Etssd.Core.Models;
 using Etssd.Doctor;
+using Etssd.Inference;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Gui;
@@ -15,10 +17,10 @@ public sealed class MainViewModel : ObservableObject
     private const int MaxLogLines = 2000;
 
     private readonly AppConfig _config;
+    private readonly ILoggerFactory _loggers;
     private readonly ILogger _log;
     private readonly IComponent _bridge;
     private readonly IComponent _control;
-    private readonly IComponent _infer;
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _inferCts;
     private Task _bridgeRun = Task.CompletedTask;
@@ -28,11 +30,10 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(AppConfig config, ILoggerFactory loggers, UiLoggerProvider uiLog, Dispatcher dispatcher)
     {
         _config = config;
+        _loggers = loggers;
         _log = loggers.CreateLogger<MainViewModel>();
-        var components = Manifest.All(config, loggers);
-        _bridge = components.Single(c => c.Name == "bridge");
-        _control = components.Single(c => c.Name == "control");
-        _infer = components.Single(c => c.Name == "infer");
+        _bridge = new BridgeComponent(loggers);
+        _control = new ControlComponent(loggers);
         uiLog.EntryLogged += line => dispatcher.BeginInvoke(() =>
         {
             Logs.Add(line);
@@ -46,22 +47,6 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<CheckRow> Checks { get; } = [];
 
     public ObservableCollection<string> Logs { get; } = [];
-
-    /// <summary>TextBox 默认在失焦时更新，每次更新即落盘。</summary>
-    public string Model
-    {
-        get => _config.Model;
-        set
-        {
-            if (_config.Model == value)
-            {
-                return;
-            }
-            _config.Model = value;
-            _config.Save();
-            OnPropertyChanged();
-        }
-    }
 
     public bool IsRunning
     {
@@ -92,12 +77,40 @@ public sealed class MainViewModel : ObservableObject
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _inferCts = cts;
         IsRunning = true;
-        await RunOne(_infer, cts.Token);
+        if (await ResolveModelDirAsync(cts.Token) is { } modelDir)
+        {
+            await RunOne(new InferenceComponent(modelDir, _loggers), cts.Token);
+        }
         _inferCts = null;
         IsRunning = false;
     }
 
     public void Stop() => _inferCts?.Cancel();
+
+    /// <summary>模型不可用或已取消时返回 null。</summary>
+    private async Task<string?> ResolveModelDirAsync(CancellationToken ct)
+    {
+        ModelState state;
+        try
+        {
+            state = await ModelStore.ResolveAsync(_config, new Progress<ModelState>(), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        if (state is ModelState.Error error)
+        {
+            _log.LogError("模型不可用：{Message}", error.Message);
+            return null;
+        }
+        var ready = (ModelState.Ready)state;
+        if (ready.Warning is { } warning)
+        {
+            _log.LogWarning("使用缓存的模型：{Warning}", warning);
+        }
+        return ready.Dir;
+    }
 
     /// <summary>停止全部组件，等待 bridge 向订阅者发完 end 通知。</summary>
     public async Task ShutdownAsync()

@@ -5,18 +5,13 @@
     <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <DockPanel Grid.Row="0" Margin="0,0,0,8">
-            <TextBlock Text="模型链接" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <TextBox Text="{Binding Model}" VerticalContentAlignment="Center" />
-        </DockPanel>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="Run" Width="80" Click="Run_Click" IsEnabled="{Binding CanRun}" />
             <Button Content="Stop" Width="80" Margin="8,0,0,0" Click="Stop_Click" IsEnabled="{Binding IsRunning}" />
         </StackPanel>
-        <TabControl Grid.Row="2">
+        <TabControl Grid.Row="1">
             <TabItem Header="依赖检查">
                 <DockPanel Margin="8">
                     <Button DockPanel.Dock="Top" Content="重新检查" Width="100" HorizontalAlignment="Left"

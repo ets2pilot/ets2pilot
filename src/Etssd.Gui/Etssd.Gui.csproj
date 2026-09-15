@@ -8,7 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Etssd.Core\Etssd.Core.csproj" />
-    <ProjectReference Include="..\Etssd.Components\Etssd.Components.csproj" />
+    <ProjectReference Include="..\Etssd.Bridge\Etssd.Bridge.csproj" />
+    <ProjectReference Include="..\Etssd.Inference\Etssd.Inference.csproj" />
     <ProjectReference Include="..\Etssd.Doctor\Etssd.Doctor.csproj" />
   </ItemGroup>
 
