@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Inference;
@@ -28,7 +29,7 @@ public sealed class ControlServer(HttpClient http)
         builder.WebHost.UseUrls(Url);
         builder.Logging.ClearProviders();
         builder.Services.ConfigureHttpJsonOptions(o => Json.Configure(o.SerializerOptions));
-        await using var app = builder.Build();
+        var app = builder.Build();
 
         app.MapPost("/trajectory", async (TrajectoryRequest trajectory) =>
         {
@@ -59,15 +60,7 @@ public sealed class ControlServer(HttpClient http)
             return Results.NoContent();
         });
 
-        await app.StartAsync(ct);
-        try
-        {
-            await Task.Delay(Timeout.Infinite, ct);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        await app.StopAsync();
+        await app.RunAsync(ct);
     }
 
     private sealed record Plan(ulong AnchorUs, double Freq, Controller Controller);
