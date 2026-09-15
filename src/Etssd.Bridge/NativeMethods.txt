@@ -1,0 +1,10 @@
+ClientToScreen
+DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+DwmGetWindowAttribute
+FindWindow
+GetClientRect
+GetForegroundWindow
+SendInput
+SetThreadDpiAwarenessContext
+timeBeginPeriod
+timeEndPeriod

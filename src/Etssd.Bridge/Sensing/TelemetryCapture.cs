@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Windows.Win32;
 
 namespace Etssd.Bridge.Sensing;
 
@@ -36,7 +37,7 @@ public sealed class TelemetryCapture(ILogger log) : IDisposable
     private void Run(CancellationToken ct)
     {
         // 游戏每帧更新一次 telemetry，默认 15.6ms 的定时器精度会漏掉更新
-        Win32.timeBeginPeriod(1);
+        PInvoke.timeBeginPeriod(1);
         try
         {
             using var telemetry = new ScsTelemetry();
@@ -82,7 +83,7 @@ public sealed class TelemetryCapture(ILogger log) : IDisposable
             {
                 output.CompleteAdding();
             }
-            Win32.timeEndPeriod(1);
+            PInvoke.timeEndPeriod(1);
         }
     }
 }

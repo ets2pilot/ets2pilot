@@ -12,6 +12,10 @@ using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
 using Windows.UI;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Dwm;
+using Windows.Win32.UI.HiDpi;
 using WinRT;
 
 namespace Etssd.Bridge.Sensing;
@@ -31,20 +35,20 @@ public sealed class ScreenCapture : IDisposable
     public ScreenCapture(ILogger log)
     {
         _log = log;
-        Win32.SetThreadDpiAwarenessContext(Win32.DpiAwarenessPerMonitorV2);
+        PInvoke.SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
 
     /// <summary>把上次写入之后的新窗口图像写入第 seq 帧。窗口不可截或 maxWait 内没有新图像时返回 false 且不改动 ring。</summary>
     public bool TryCapture(FrameRing ring, ulong seq, TimeSpan maxWait)
     {
-        var hwnd = Win32.FindWindowW(null, WindowTitle);
-        if (hwnd == IntPtr.Zero)
+        var hwnd = PInvoke.FindWindow(null, WindowTitle);
+        if (hwnd.IsNull)
         {
             Reject("未找到 ETS2 窗口");
             return false;
         }
-        Win32.GetClientRect(hwnd, out var rect);
-        var (width, height) = (rect.Right - rect.Left, rect.Bottom - rect.Top);
+        PInvoke.GetClientRect(hwnd, out var rect);
+        var (width, height) = (rect.Width, rect.Height);
         if (width * 9 != height * 16)
         {
             Reject($"ETS2 窗口 {width}x{height} 不是 16:9");
@@ -62,10 +66,11 @@ public sealed class ScreenCapture : IDisposable
             return false;
         }
         // 窗口帧的原点是 DWMWA_EXTENDED_FRAME_BOUNDS 的左上角，含标题栏与边框
-        Win32.DwmGetWindowAttribute(hwnd, Win32.DwmwaExtendedFrameBounds, out var bounds, Marshal.SizeOf<Win32.Rect>());
-        var origin = new Win32.Point();
-        Win32.ClientToScreen(hwnd, ref origin);
-        var source = new RawRect(origin.X - bounds.Left, origin.Y - bounds.Top, origin.X - bounds.Left + width, origin.Y - bounds.Top + height);
+        var bounds = new RECT();
+        PInvoke.DwmGetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, MemoryMarshal.AsBytes(new Span<RECT>(ref bounds)));
+        var origin = new System.Drawing.Point();
+        PInvoke.ClientToScreen(hwnd, ref origin);
+        var source = new RawRect(origin.X - bounds.left, origin.Y - bounds.top, origin.X - bounds.left + width, origin.Y - bounds.top + height);
         _pipeline.Write(frame, source, ring, seq);
         if (_lastRejection is not null)
         {

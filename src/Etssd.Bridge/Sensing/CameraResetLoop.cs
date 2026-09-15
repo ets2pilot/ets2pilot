@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using Etssd.Bridge.Http;
 using Etssd.Bridge.Webhook;
 using Microsoft.Extensions.Logging;
+using Windows.Win32;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 
 namespace Etssd.Bridge.Sensing;
 
@@ -30,19 +32,19 @@ public sealed class CameraResetLoop(SubscriberRegistry registry, ILogger log)
 
     private static bool IsEts2Foreground()
     {
-        var hwnd = Win32.FindWindowW(null, ScreenCapture.WindowTitle);
-        return hwnd != IntPtr.Zero && Win32.GetForegroundWindow() == hwnd;
+        var hwnd = PInvoke.FindWindow(null, ScreenCapture.WindowTitle);
+        return !hwnd.IsNull && PInvoke.GetForegroundWindow() == hwnd;
     }
 
     private void Press()
     {
         // ETS2 按扫描码识别键位，VirtualKey 留空
-        Win32.Input[] inputs =
+        INPUT[] inputs =
         [
-            Keyboard(Win32.KeyEventScanCode),
-            Keyboard(Win32.KeyEventScanCode | Win32.KeyEventKeyUp),
+            Keyboard(KEYBD_EVENT_FLAGS.KEYEVENTF_SCANCODE),
+            Keyboard(KEYBD_EVENT_FLAGS.KEYEVENTF_SCANCODE | KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP),
         ];
-        var sent = Win32.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Win32.Input>());
+        var sent = PInvoke.SendInput(inputs, Marshal.SizeOf<INPUT>());
         if (sent == inputs.Length)
         {
             _failed = false;
@@ -56,9 +58,9 @@ public sealed class CameraResetLoop(SubscriberRegistry registry, ILogger log)
         }
     }
 
-    private static Win32.Input Keyboard(uint flags) => new()
+    private static INPUT Keyboard(KEYBD_EVENT_FLAGS flags) => new()
     {
-        Type = Win32.InputKeyboard,
-        Union = new Win32.InputUnion { Keyboard = new Win32.KeyboardInput { ScanCode = ScanCode1, Flags = flags } },
+        type = INPUT_TYPE.INPUT_KEYBOARD,
+        Anonymous = new INPUT._Anonymous_e__Union { ki = new KEYBDINPUT { wScan = ScanCode1, dwFlags = flags } },
     };
 }
