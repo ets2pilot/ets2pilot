@@ -45,7 +45,7 @@ infer.SetAction(async (parseResult, ct) =>
 });
 root.Subcommands.Add(infer);
 
-var doctor = new Command("doctor", "检查 vJoy 驱动、telemetry 插件、显卡");
+var doctor = new Command("doctor", "检查 vJoy 驱动、游戏、telemetry 插件、显卡");
 doctor.SetAction(_ =>
 {
     var failed = false;

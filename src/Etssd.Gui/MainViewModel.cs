@@ -163,8 +163,8 @@ public sealed partial class MainViewModel : ObservableObject
         IsInferRunning
             ? $"{ModelName} {RevisionName} · 已运行 {_inferElapsed.Elapsed:mm\\:ss} · 丢帧 {InferSubscription?.Dropped ?? 0}"
             : CanInfer()
-                ? "运行模型后回到游戏。模型只输出轨迹，是否启用控制由控制策略决定。"
-                : "完成下面标红的准备项后即可运行模型。黄色项不阻止运行。";
+                ? "运行模型后回到游戏"
+                : "先完成标红的准备项";
 
     public ReadinessStatus ModelStatus => Model switch
     {
@@ -355,6 +355,7 @@ public sealed partial class MainViewModel : ObservableObject
     private static (string Name, string? LinkText) Describe(IDoctorCheck check) => check switch
     {
         VJoyCheck => ("vJoy", "下载 vJoy"),
+        GameCheck => ("游戏", null),
         TelemetryCheck => ("遥测插件", "下载插件"),
         GpuCheck => ("显卡", null),
         _ => (check.Name, "下载"),
@@ -362,6 +363,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private static ReadinessStatus ToReadiness(CheckStatus status) => status switch
     {
+        CheckStatus.Unknown => ReadinessStatus.Unknown,
         CheckStatus.Ok => ReadinessStatus.Ok,
         CheckStatus.Warning => ReadinessStatus.Warning,
         _ => ReadinessStatus.Failed,

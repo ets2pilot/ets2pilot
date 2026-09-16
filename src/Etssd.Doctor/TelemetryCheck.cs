@@ -1,12 +1,13 @@
 using System.IO.MemoryMappedFiles;
+using Etssd.Bridge.Sensing;
 
 namespace Etssd.Doctor;
 
-/// <summary>映射只在游戏运行且插件已加载时存在，打不开时无法区分两种缺失。</summary>
+/// <summary>映射由插件在游戏启动时创建，游戏未运行时得不出插件是否装好的结论。</summary>
 public sealed class TelemetryCheck : IDoctorCheck
 {
-    private const string MapName = @"Local\SCSTelemetry";
     private const string DownloadUrl = "https://github.com/RenCloud/scs-sdk-plugin/releases";
+    private const string InstallHint = @"scs-telemetry.dll 需装到 <游戏>\bin\win_x64\plugins";
 
     public string Name => "telemetry";
 
@@ -14,15 +15,14 @@ public sealed class TelemetryCheck : IDoctorCheck
     {
         try
         {
-            using var map = MemoryMappedFile.OpenExisting(MapName, MemoryMappedFileRights.Read);
-            return new(CheckStatus.Ok, $"已连接 {MapName}");
+            using var map = MemoryMappedFile.OpenExisting(ScsTelemetry.MapName, MemoryMappedFileRights.Read);
+            return new(CheckStatus.Ok, $"已连接 {ScsTelemetry.MapName}");
         }
         catch (FileNotFoundException)
         {
-            return new(
-                CheckStatus.Warning,
-                $"未找到 {MapName}：游戏未运行，或未把 scs-telemetry.dll 装到 <游戏>\\bin\\win_x64\\plugins",
-                DownloadUrl);
+            return ScreenCapture.IsWindowPresent()
+                ? new(CheckStatus.Failed, $"无法打开 {ScsTelemetry.MapName}：{InstallHint}", DownloadUrl)
+                : new(CheckStatus.Unknown, "游戏未运行", DownloadUrl);
         }
     }
 }

@@ -1,7 +1,9 @@
 namespace Etssd.Doctor;
 
+/// <summary>Unknown 表示前置条件不满足，检查未能得出结论，不计入失败。</summary>
 public enum CheckStatus
 {
+    Unknown,
     Ok,
     Warning,
     Failed,
@@ -23,6 +25,7 @@ public static class Checks
     public static IReadOnlyList<IDoctorCheck> All { get; } =
     [
         new VJoyCheck(),
+        new GameCheck(),
         new TelemetryCheck(),
         new GpuCheck(),
     ];

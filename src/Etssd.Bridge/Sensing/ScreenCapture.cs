@@ -38,6 +38,9 @@ public sealed class ScreenCapture : IDisposable
         PInvoke.SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
 
+    /// <summary>游戏窗口是否存在。截图与 telemetry 映射都只在窗口出现后可用。</summary>
+    public static bool IsWindowPresent() => !PInvoke.FindWindow(null, WindowTitle).IsNull;
+
     /// <summary>把上次写入之后的新窗口图像写入第 seq 帧。窗口不可截或 maxWait 内没有新图像时返回 false 且不改动 ring。</summary>
     public bool TryCapture(FrameRing ring, ulong seq, TimeSpan maxWait)
     {
