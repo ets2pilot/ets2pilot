@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Etssd.Bridge.Frames;
+using Etssd.Core;
 using Microsoft.Extensions.Logging;
 using SharpGen.Runtime;
 using Vortice;
@@ -77,7 +78,7 @@ public sealed class ScreenCapture : IDisposable
         _pipeline.Write(frame, source, ring, seq);
         if (_lastRejection is not null)
         {
-            _log.LogInformation("开始截图 {Width}x{Height}", width, height);
+            _log.LogInformation(AppEvents.UserVisible, "开始截图 {Width}x{Height}", width, height);
             _lastRejection = null;
         }
         return true;
@@ -93,7 +94,7 @@ public sealed class ScreenCapture : IDisposable
     {
         if (reason != _lastRejection)
         {
-            _log.LogInformation("跳过截图: {Reason}", reason);
+            _log.LogInformation(AppEvents.UserVisible, "跳过截图: {Reason}", reason);
             _lastRejection = reason;
         }
     }

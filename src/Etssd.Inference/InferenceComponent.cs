@@ -13,10 +13,10 @@ public sealed class InferenceComponent(string modelDir, ILoggerFactory loggers) 
 
     public async Task RunAsync(CancellationToken ct)
     {
-        _log.LogInformation("infer running, model: {Model}", modelDir);
+        _log.LogInformation(AppEvents.UserVisible, "infer running, model: {Model}", modelDir);
         // loopback 请求不能走 HTTP_PROXY
         using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
         await new ModelServer(modelDir, http, loggers.CreateLogger<ModelServer>()).RunAsync(ct);
-        _log.LogInformation("infer stopped");
+        _log.LogInformation(AppEvents.UserVisible, "infer stopped");
     }
 }

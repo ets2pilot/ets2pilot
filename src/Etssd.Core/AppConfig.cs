@@ -35,7 +35,7 @@ public sealed record AppConfig
         }
         catch (Exception ex) when (ex is TomlException or IOException)
         {
-            logger.LogWarning(ex, "{Path} 无法读取，使用默认配置", AppPaths.ConfigFile);
+            logger.LogWarning(AppEvents.UserVisible, ex, "{Path} 无法读取，使用默认配置", AppPaths.ConfigFile);
             return new AppConfig();
         }
     }

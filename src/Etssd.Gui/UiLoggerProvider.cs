@@ -1,3 +1,4 @@
+using Etssd.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Gui;
@@ -15,7 +16,7 @@ public sealed record LogEntry(DateTime Time, LogLevel Level, string Category, st
     };
 }
 
-/// <summary>把日志条目推给日志页。事件在写日志的线程上触发，订阅方自行切到 UI 线程。</summary>
+/// <summary>把 <see cref="AppEvents.UserVisible"/> 的日志推给日志页。事件在写日志的线程上触发，订阅方自行切到 UI 线程。</summary>
 public sealed class UiLoggerProvider : ILoggerProvider
 {
     public event Action<LogEntry>? EntryLogged;
@@ -38,11 +39,12 @@ public sealed class UiLoggerProvider : ILoggerProvider
 
         public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
 
+        /// <remarks>EventId 取不到 <see cref="ILogger.IsEnabled"/>，筛选只能放在这里。</remarks>
         public void Log<TState>(
             LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            if (!IsEnabled(logLevel))
+            if (!IsEnabled(logLevel) || eventId != AppEvents.UserVisible)
             {
                 return;
             }

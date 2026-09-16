@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Etssd.Bridge.Http;
 using Etssd.Bridge.Webhook;
+using Etssd.Core;
 using Microsoft.Extensions.Logging;
 using Windows.Win32;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
@@ -53,7 +54,7 @@ public sealed class CameraResetLoop(SubscriberRegistry registry, ILogger log)
         if (!_failed)
         {
             // 常见原因是 ETS2 以管理员运行而 bridge 没有
-            log.LogWarning("相机回正按键发送失败 (Win32 错误 {Error})", Marshal.GetLastWin32Error());
+            log.LogWarning(AppEvents.UserVisible, "相机回正按键发送失败 (Win32 错误 {Error})", Marshal.GetLastWin32Error());
             _failed = true;
         }
     }

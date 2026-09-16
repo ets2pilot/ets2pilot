@@ -1,3 +1,4 @@
+using Etssd.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Bridge.VJoy;
@@ -30,12 +31,12 @@ public sealed class VJoyController : IDisposable
     {
         if (VJoyInstall.DllPath is not { } dll || !File.Exists(dll))
         {
-            log.LogWarning("未安装 vJoy，/control 不可用");
+            log.LogWarning(AppEvents.UserVisible, "未安装 vJoy，/control 不可用");
             return null;
         }
         if (!VJoyNative.vJoyEnabled() || !VJoyNative.AcquireVJD(DeviceId))
         {
-            log.LogWarning("vJoy 设备 {Id} 状态 {Status}，无法取得，/control 不可用",
+            log.LogWarning(AppEvents.UserVisible, "vJoy 设备 {Id} 状态 {Status}，无法取得，/control 不可用",
                 DeviceId, VJoyNative.GetVJDStatus(DeviceId));
             return null;
         }

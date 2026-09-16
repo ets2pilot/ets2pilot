@@ -14,8 +14,8 @@ public sealed class ControlComponent(ILoggerFactory loggers) : IComponent
     {
         // loopback 请求不能走 HTTP_PROXY
         using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
-        _log.LogInformation("control 启动 {Url}", ControlServer.Url);
+        _log.LogInformation(AppEvents.UserVisible, "control 启动 {Url}", ControlServer.Url);
         await new ControlServer(http).RunAsync(ct);
-        _log.LogInformation("control 已停止");
+        _log.LogInformation(AppEvents.UserVisible, "control 已停止");
     }
 }

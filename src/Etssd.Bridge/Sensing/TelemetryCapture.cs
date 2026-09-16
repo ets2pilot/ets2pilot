@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Etssd.Core;
 using Microsoft.Extensions.Logging;
 using Windows.Win32;
 
@@ -49,7 +50,7 @@ public sealed class TelemetryCapture(ILogger log) : IDisposable
                 {
                     if (!waiting)
                     {
-                        log.LogInformation("等待 telemetry: {Map}", ScsTelemetry.MapName);
+                        log.LogInformation(AppEvents.UserVisible, "等待 telemetry: {Map}", ScsTelemetry.MapName);
                         waiting = true;
                     }
                     lastSimUs = null;
@@ -58,7 +59,7 @@ public sealed class TelemetryCapture(ILogger log) : IDisposable
                 }
                 if (waiting)
                 {
-                    log.LogInformation("telemetry 已连接");
+                    log.LogInformation(AppEvents.UserVisible, "telemetry 已连接");
                     waiting = false;
                 }
                 if (telemetry.SimulationTimeUs == lastSimUs)

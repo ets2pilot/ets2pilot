@@ -1,4 +1,5 @@
 using Etssd.Bridge.Http;
+using Etssd.Core;
 using Microsoft.Extensions.Logging;
 
 namespace Etssd.Bridge.Webhook;
@@ -34,7 +35,7 @@ public sealed class SubscriberRegistry(HttpClient http, ILogger log)
             subscriber.Start(http, log, stopped => Remove(stopped));
         }
         _ = replaced?.StopAsync();
-        log.LogInformation("webhook {Name} 已注册: {Type} {Freq}Hz 租期 {Lease}s -> {Url}",
+        log.LogInformation(AppEvents.UserVisible, "webhook {Name} 已注册: {Type} {Freq}Hz 租期 {Lease}s -> {Url}",
             request.Name, request.Type, request.Freq, request.Lease, request.Url);
         return true;
     }
@@ -59,7 +60,7 @@ public sealed class SubscriberRegistry(HttpClient http, ILogger log)
         }));
         if (all.Length > 0)
         {
-            log.LogInformation("已向 {Count} 个 webhook 发送 end 通知", all.Length);
+            log.LogInformation(AppEvents.UserVisible, "已向 {Count} 个 webhook 发送 end 通知", all.Length);
         }
     }
 
@@ -73,6 +74,6 @@ public sealed class SubscriberRegistry(HttpClient http, ILogger log)
             }
             Volatile.Write(ref _subscribers, [.. _subscribers.Where(s => s != subscriber)]);
         }
-        log.LogInformation("webhook {Name} 已注销", subscriber.Name);
+        log.LogInformation(AppEvents.UserVisible, "webhook {Name} 已注销", subscriber.Name);
     }
 }

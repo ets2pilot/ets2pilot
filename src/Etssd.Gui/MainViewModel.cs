@@ -272,13 +272,13 @@ public sealed partial class MainViewModel : ObservableObject
         switch (result)
         {
             case ModelState.Error error:
-                _log.LogError("模型不可用：{Message}", error.Message);
+                _log.LogError(AppEvents.UserVisible, "模型不可用：{Message}", error.Message);
                 break;
             case ModelState.Ready { Warning: { } warning }:
-                _log.LogWarning("使用缓存的模型：{Warning}", warning);
+                _log.LogWarning(AppEvents.UserVisible, "使用缓存的模型：{Warning}", warning);
                 break;
             case ModelState.Ready ready:
-                _log.LogInformation("{Repo} 已是最新 {Sha}，缓存 {Dir}", _config.ModelRepo, ready.Sha, ready.Dir);
+                _log.LogInformation(AppEvents.UserVisible, "{Repo} 已是最新 {Sha}，缓存 {Dir}", _config.ModelRepo, ready.Sha, ready.Dir);
                 break;
         }
     }
@@ -334,7 +334,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _log.LogError(ex, "{Path} 无法写入", AppPaths.ConfigFile);
+            _log.LogError(AppEvents.UserVisible, ex, "{Path} 无法写入", AppPaths.ConfigFile);
         }
         CheckModelCancelCommand.Execute(null);
         Model = null;
@@ -383,7 +383,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (Win32Exception ex)
         {
-            _log.LogWarning("无法打开 {Path}：{Message}", path, ex.Message);
+            _log.LogWarning(AppEvents.UserVisible, "无法打开 {Path}：{Message}", path, ex.Message);
         }
     }
 
@@ -398,7 +398,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "{Name} 异常退出", component.Name);
+            _log.LogError(AppEvents.UserVisible, ex, "{Name} 异常退出", component.Name);
         }
     }
 }

@@ -38,7 +38,7 @@ public sealed class BridgeComponent(ILoggerFactory loggers) : IComponent
         using var vjoy = VJoyController.TryAcquire(_log);
         await using var app = BridgeServer.Build(registry, vjoy, loggers);
         await app.StartAsync(CancellationToken.None);
-        _log.LogInformation("bridge 监听 {Url}", BridgeServer.Url);
+        _log.LogInformation(AppEvents.UserVisible, "bridge 监听 {Url}", BridgeServer.Url);
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct);
         using var capture = new TelemetryCapture(loggers.CreateLogger<TelemetryCapture>());
         var telemetryLoop = new TelemetryLoop(capture.Subscribe(), registry);
@@ -64,7 +64,7 @@ public sealed class BridgeComponent(ILoggerFactory loggers) : IComponent
             await registry.EndAllAsync();
             using var stopTimeout = new CancellationTokenSource(ServerStopTimeout);
             await app.StopAsync(stopTimeout.Token);
-            _log.LogInformation("bridge 已停止");
+            _log.LogInformation(AppEvents.UserVisible, "bridge 已停止");
         }
     }
 }
