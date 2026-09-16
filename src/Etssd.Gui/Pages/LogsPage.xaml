@@ -8,7 +8,7 @@
       xmlns:logging="clr-namespace:Microsoft.Extensions.Logging;assembly=Microsoft.Extensions.Logging.Abstractions"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance gui:MainViewModel, IsDesignTimeCreatable=False}"
-      Title="日志">
+      Title="{DynamicResource Text.Nav.Logs}">
     <Grid Margin="24,16,24,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -17,11 +17,11 @@
         </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0" Margin="0,0,0,20">
-            <ui:Button DockPanel.Dock="Right" Margin="12,0,0,0" Content="打开日志目录"
+            <ui:Button DockPanel.Dock="Right" Margin="12,0,0,0" Content="{DynamicResource Text.Logs.OpenDir}"
                        Icon="{ui:SymbolIcon Folder24}" Command="{Binding OpenLogDirCommand}" />
-            <ui:Button DockPanel.Dock="Right" Content="打开日志文件"
+            <ui:Button DockPanel.Dock="Right" Content="{DynamicResource Text.Logs.OpenFile}"
                        Icon="{ui:SymbolIcon Document24}" Command="{Binding OpenLogFileCommand}" />
-            <ui:ToggleSwitch x:Name="AutoScroll" Content="自动滚动" IsChecked="True" HorizontalAlignment="Left" />
+            <ui:ToggleSwitch x:Name="AutoScroll" Content="{DynamicResource Text.Logs.AutoScroll}" IsChecked="True" HorizontalAlignment="Left" />
         </DockPanel>
 
         <ui:Card Grid.Row="1" Padding="0,8" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
@@ -77,10 +77,9 @@
         </ui:Card>
 
         <DockPanel Grid.Row="2" Margin="0,8,0,0">
-            <TextBlock DockPanel.Dock="Right" Style="{StaticResource CaptionText}"
-                       Text="{Binding MaxLogCount, StringFormat=窗口内保留最近 {0} 行}" />
+            <TextBlock DockPanel.Dock="Right" Style="{StaticResource CaptionText}" Text="{Binding LogRetention}" />
             <TextBlock Style="{StaticResource CaptionText}">
-                <Run Text="文件：" /><Run FontFamily="{StaticResource MonoFont}" Text="{Binding LogFile, Mode=OneWay}" /><Run Text=" · 反馈问题时直接发送此文件" />
+                <Run Text="{DynamicResource Text.Logs.FilePrefix}" /><Run FontFamily="{StaticResource MonoFont}" Text="{Binding LogFile, Mode=OneWay}" /><Run Text=" · " /><Run Text="{DynamicResource Text.Logs.FileHint}" />
             </TextBlock>
         </DockPanel>
     </Grid>

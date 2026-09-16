@@ -7,7 +7,7 @@
       xmlns:gui="clr-namespace:Etssd.Gui"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance gui:MainViewModel, IsDesignTimeCreatable=False}"
-      Title="概览">
+      Title="{DynamicResource Text.Nav.Overview}">
     <Page.Resources>
         <Style x:Key="Chip" TargetType="Border">
             <Setter Property="Height" Value="22" />
@@ -60,10 +60,10 @@
                                 <TextBlock VerticalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="控制 · 未启用" />
+                                            <Setter Property="Text" Value="{DynamicResource Text.Overview.ControlOff}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsControlEnabled}" Value="True">
-                                                    <Setter Property="Text" Value="控制 · 已启用" />
+                                                    <Setter Property="Text" Value="{DynamicResource Text.Overview.ControlOn}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -78,13 +78,13 @@
                     <ui:Button.Style>
                         <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                             <Setter Property="Appearance" Value="Primary" />
-                            <Setter Property="Content" Value="运行模型" />
+                            <Setter Property="Content" Value="{DynamicResource Text.Overview.Run}" />
                             <Setter Property="Icon" Value="{ui:SymbolIcon Play24, Filled=True}" />
                             <Setter Property="Command" Value="{Binding InferCommand}" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsInferRunning}" Value="True">
                                     <Setter Property="Appearance" Value="Secondary" />
-                                    <Setter Property="Content" Value="停止" />
+                                    <Setter Property="Content" Value="{DynamicResource Text.Overview.Stop}" />
                                     <Setter Property="Icon" Value="{ui:SymbolIcon Stop24, Filled=True}" />
                                     <Setter Property="Command" Value="{Binding InferCancelCommand}" />
                                 </DataTrigger>
@@ -96,9 +96,9 @@
         </ui:Card>
 
         <DockPanel Margin="0,20,0,8">
-            <ui:Button DockPanel.Dock="Right" Content="重新检查" Icon="{ui:SymbolIcon ArrowClockwise24}"
+            <ui:Button DockPanel.Dock="Right" Content="{DynamicResource Text.Overview.Recheck}" Icon="{ui:SymbolIcon ArrowClockwise24}"
                        Command="{Binding RunChecksCommand}" />
-            <TextBlock Style="{StaticResource SectionHeader}" Text="准备情况" />
+            <TextBlock Style="{StaticResource SectionHeader}" Text="{DynamicResource Text.Overview.ChecksHeader}" />
         </DockPanel>
 
         <ui:Card Padding="0">
@@ -112,7 +112,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <ui:SymbolIcon Grid.Column="0" Style="{StaticResource StatusIcon}" Tag="{Binding ModelStatus}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Margin="12,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Text="模型" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center" Text="{DynamicResource Text.Overview.ModelRow}" />
                         <StackPanel Grid.Column="2" Margin="12,0" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource SecondaryText}" Text="{Binding ModelMessage}" ToolTip="{Binding ModelMessage}" />
                             <ProgressBar Margin="0,6,0,0"
@@ -123,11 +123,11 @@
                         <ui:Button Grid.Column="3" VerticalAlignment="Center">
                             <ui:Button.Style>
                                 <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-                                    <Setter Property="Content" Value="检查更新" />
+                                    <Setter Property="Content" Value="{DynamicResource Text.Overview.CheckUpdate}" />
                                     <Setter Property="Command" Value="{Binding CheckModelCommand}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsModelBusy}" Value="True">
-                                            <Setter Property="Content" Value="取消" />
+                                            <Setter Property="Content" Value="{DynamicResource Text.Overview.Cancel}" />
                                             <Setter Property="Command" Value="{Binding CheckModelCancelCommand}" />
                                         </DataTrigger>
                                     </Style.Triggers>

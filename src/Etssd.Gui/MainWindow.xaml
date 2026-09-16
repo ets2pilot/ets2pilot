@@ -8,7 +8,8 @@
                  xmlns:pages="clr-namespace:Etssd.Gui.Pages"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance local:MainViewModel, IsDesignTimeCreatable=False}"
-                 Title="etssd" Width="800" Height="600" MinWidth="640" MinHeight="480"
+                 Title="{DynamicResource Text.App.Title}"
+                 Width="800" Height="600" MinWidth="640" MinHeight="480"
                  ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="Mica"
                  WindowCornerPreference="Round"
@@ -38,7 +39,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="etssd">
+        <ui:TitleBar Grid.Row="0" Title="{DynamicResource Text.App.Title}">
             <ui:TitleBar.Icon>
                 <ui:SymbolIcon Symbol="VehicleTruckProfile24" Filled="True" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
             </ui:TitleBar.Icon>
@@ -50,9 +51,9 @@
                            IsPaneToggleVisible="False"
                            FrameMargin="0">
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="概览" TargetPageType="{x:Type pages:OverviewPage}" />
-                <ui:NavigationViewItem Content="日志" TargetPageType="{x:Type pages:LogsPage}" />
-                <ui:NavigationViewItem Content="设置" TargetPageType="{x:Type pages:SettingsPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource Text.Nav.Overview}" TargetPageType="{x:Type pages:OverviewPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource Text.Nav.Logs}" TargetPageType="{x:Type pages:LogsPage}" />
+                <ui:NavigationViewItem Content="{DynamicResource Text.Nav.Settings}" TargetPageType="{x:Type pages:SettingsPage}" />
             </ui:NavigationView.MenuItems>
         </ui:NavigationView>
 
@@ -67,16 +68,16 @@
                     </Style>
                 </StackPanel.Resources>
                 <Ellipse Style="{StaticResource ServiceDot}" Tag="{Binding IsBridgeRunning}" />
-                <TextBlock Margin="6,0,0,0" Text="bridge" />
+                <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.Status.Bridge}" />
                 <TextBlock Margin="4,0,20,0" FontFamily="{StaticResource MonoFont}" Text="{Binding BridgePort, StringFormat=:{0}}" />
                 <Ellipse Style="{StaticResource ServiceDot}" Tag="{Binding IsControlRunning}" />
-                <TextBlock Margin="6,0,0,0" Text="control" />
+                <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.Status.Control}" />
                 <TextBlock Margin="4,0,20,0" FontFamily="{StaticResource MonoFont}" Text="{Binding ControlPort, StringFormat=:{0}}" />
                 <Ellipse Style="{StaticResource ServiceDot}" Tag="{Binding IsInferRunning}" />
-                <TextBlock Margin="6,0,0,0" Text="模型" />
+                <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.Status.Model}" />
                 <TextBlock Margin="4,0,20,0" FontFamily="{StaticResource MonoFont}" Text="{Binding ModelPort, StringFormat=:{0}}" />
                 <Rectangle Width="1" Height="14" Margin="0,0,20,0" Fill="{DynamicResource CardStrokeColorDefaultBrush}" />
-                <TextBlock Text="已注册回调：" />
+                <TextBlock Text="{DynamicResource Text.Status.Callbacks}" />
                 <TextBlock FontFamily="{StaticResource MonoFont}" Text="{Binding Callbacks}" />
             </StackPanel>
         </Border>

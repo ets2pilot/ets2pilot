@@ -7,7 +7,7 @@
       xmlns:gui="clr-namespace:Etssd.Gui"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance gui:MainViewModel, IsDesignTimeCreatable=False}"
-      Title="设置">
+      Title="{DynamicResource Text.Nav.Settings}">
     <Page.Resources>
         <Style x:Key="SettingRow" TargetType="Border" BasedOn="{StaticResource CardRow}">
             <Setter Property="MinHeight" Value="68" />
@@ -20,7 +20,7 @@
     </Page.Resources>
 
     <StackPanel Margin="24,16,24,24">
-        <TextBlock Style="{StaticResource SectionHeader}" Margin="4,0,4,8" Text="模型" />
+        <TextBlock Style="{StaticResource SectionHeader}" Margin="4,0,4,8" Text="{DynamicResource Text.Settings.ModelHeader}" />
         <ui:Card Padding="0">
             <StackPanel>
                 <Border Style="{StaticResource SettingRow}" BorderThickness="0">
@@ -28,11 +28,11 @@
                         <ui:TextBox DockPanel.Dock="Right" Width="360" VerticalAlignment="Center"
                                     FontFamily="{StaticResource MonoFont}" FontSize="13"
                                     ClearButtonEnabled="False"
-                                    PlaceholderText="owner/name"
+                                    PlaceholderText="{DynamicResource Text.Settings.RepoPlaceholder}"
                                     Text="{Binding ModelRepo}" />
                         <StackPanel Style="{StaticResource SettingLabel}">
-                            <TextBlock Text="来源仓库" />
-                            <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}" Text="Hugging Face 上的模型仓库，普通用户保持默认" />
+                            <TextBlock Text="{DynamicResource Text.Settings.Repo}" />
+                            <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}" Text="{DynamicResource Text.Settings.RepoHint}" />
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -42,11 +42,11 @@
                         <ui:TextBox DockPanel.Dock="Right" Width="360" VerticalAlignment="Center"
                                     FontFamily="{StaticResource MonoFont}" FontSize="13"
                                     ClearButtonEnabled="False"
-                                    PlaceholderText="main"
+                                    PlaceholderText="{DynamicResource Text.Settings.RevisionPlaceholder}"
                                     Text="{Binding ModelRevision}" />
                         <StackPanel Style="{StaticResource SettingLabel}">
-                            <TextBlock Text="版本" />
-                            <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}" Text="分支、标签或 commit，留空为 main。启动时检查并自动下载" />
+                            <TextBlock Text="{DynamicResource Text.Settings.Revision}" />
+                            <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}" Text="{DynamicResource Text.Settings.RevisionHint}" />
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -58,24 +58,24 @@
                                   DisplayMemberPath="Label"
                                   SelectedItem="{Binding SelectedMirror}" />
                         <StackPanel Style="{StaticResource SettingLabel}">
-                            <TextBlock Text="镜像站点" />
-                            <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}" Text="国内网络可选 hf-mirror.com" />
+                            <TextBlock Text="{DynamicResource Text.Settings.Mirror}" />
+                            <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}" Text="{DynamicResource Text.Settings.MirrorHint}" />
                         </StackPanel>
                     </DockPanel>
                 </Border>
             </StackPanel>
         </ui:Card>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Margin="4,20,4,8" Text="存储" />
+        <TextBlock Style="{StaticResource SectionHeader}" Margin="4,20,4,8" Text="{DynamicResource Text.Settings.StorageHeader}" />
         <ui:Card Padding="0">
             <Border Style="{StaticResource SettingRow}" BorderThickness="0">
                 <DockPanel>
-                    <ui:Button DockPanel.Dock="Right" VerticalAlignment="Center" Content="打开"
+                    <ui:Button DockPanel.Dock="Right" VerticalAlignment="Center" Content="{DynamicResource Text.Settings.Open}"
                                Icon="{ui:SymbolIcon Folder24}" Command="{Binding OpenDataDirCommand}" />
                     <StackPanel Style="{StaticResource SettingLabel}">
-                        <TextBlock Text="数据目录" />
+                        <TextBlock Text="{DynamicResource Text.Settings.DataDir}" />
                         <TextBlock Margin="0,2,0,0" Style="{StaticResource CaptionText}">
-                            <Run FontFamily="{StaticResource MonoFont}" Text="{Binding DataDir, Mode=OneWay}" /><Run Text=" · 模型缓存 models\ · 日志 logs\ · 配置 config.toml" />
+                            <Run FontFamily="{StaticResource MonoFont}" Text="{Binding DataDir, Mode=OneWay}" /><Run Text=" · " /><Run Text="{DynamicResource Text.Settings.DataDirHint}" />
                         </TextBlock>
                     </StackPanel>
                 </DockPanel>

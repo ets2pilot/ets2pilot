@@ -78,7 +78,7 @@ public sealed partial class MainViewModel : ObservableObject
         _log = loggers.CreateLogger<MainViewModel>();
         _bridge = new BridgeComponent(loggers);
         _control = new ControlComponent(loggers);
-        Mirrors = [new("直连 huggingface.co", ""), new("hf-mirror.com", HfMirror)];
+        Mirrors = [new(Strings.Get("Text.Settings.MirrorDirect"), ""), new(new Uri(HfMirror).Host, HfMirror)];
         if (Mirrors.All(m => m.Endpoint != config.HfEndpoint))
         {
             Mirrors.Add(new(config.HfEndpoint, config.HfEndpoint));
@@ -100,7 +100,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ObservableCollection<LogEntry> Logs { get; } = [];
 
-    public int MaxLogCount => MaxLogLines;
+    public string LogRetention => Strings.Format("Text.Logs.Retention", MaxLogLines);
 
     public string LogFile => AppPaths.LogFile(App.LogRole);
 
@@ -145,7 +145,7 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsInferRunning => InferCommand.IsRunning;
 
     public string Callbacks => _subscriptions.Count == 0
-        ? "无"
+        ? Strings.Get("Text.Status.NoCallbacks")
         : string.Join(" · ", _subscriptions.Select(s => $"{s.Name} {s.Freq:0.#} Hz"));
 
     /// <summary>infer 订阅的频率，未注册时为 null。</summary>
@@ -157,14 +157,15 @@ public sealed partial class MainViewModel : ObservableObject
     public ReadinessStatus OverviewStatus =>
         IsInferRunning ? ReadinessStatus.Ok : CanInfer() ? ReadinessStatus.Unknown : ReadinessStatus.Warning;
 
-    public string OverviewTitle => IsInferRunning ? "模型运行中" : CanInfer() ? "就绪" : "尚未就绪";
+    public string OverviewTitle => Strings.Get(
+        IsInferRunning ? "Text.Overview.TitleRunning" : CanInfer() ? "Text.Overview.TitleReady" : "Text.Overview.TitleNotReady");
 
     public string OverviewSubtitle =>
         IsInferRunning
-            ? $"{ModelName} {RevisionName} · 已运行 {_inferElapsed.Elapsed:mm\\:ss} · 丢帧 {InferSubscription?.Dropped ?? 0}"
-            : CanInfer()
-                ? "运行模型后回到游戏"
-                : "先完成标红的准备项";
+            ? Strings.Format(
+                "Text.Overview.SubtitleRunning",
+                ModelName, RevisionName, _inferElapsed.Elapsed.ToString(@"mm\:ss"), InferSubscription?.Dropped ?? 0)
+            : Strings.Get(CanInfer() ? "Text.Overview.SubtitleReady" : "Text.Overview.SubtitleNotReady");
 
     public ReadinessStatus ModelStatus => Model switch
     {
@@ -177,14 +178,19 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string ModelMessage => Model switch
     {
-        null => "未检查",
-        ModelState.Checking => $"正在检查 {_config.ModelRepo}",
-        ModelState.Downloading d =>
-            $"正在下载 {RevisionName} · {d.File} · {d.Received / 1e6:0} / {(d.Total is { } total ? $"{total / 1e6:0}" : "?")} MB · {d.Received / 1e6 / Math.Max(_downloadElapsed.Elapsed.TotalSeconds, 1e-3):0.0} MB/s",
-        ModelState.Ready { Warning: { } warning } => $"{ModelName} · {RevisionName} · 使用缓存，未能检查更新：{warning}",
+        null => Strings.Get("Text.Model.Unchecked"),
+        ModelState.Checking => Strings.Format("Text.Model.Checking", _config.ModelRepo),
+        ModelState.Downloading d => Strings.Format(
+            "Text.Model.Downloading",
+            RevisionName,
+            d.File,
+            d.Received / 1e6,
+            d.Total is { } total ? $"{total / 1e6:0}" : "?",
+            d.Received / 1e6 / Math.Max(_downloadElapsed.Elapsed.TotalSeconds, 1e-3)),
+        ModelState.Ready { Warning: { } warning } => Strings.Format("Text.Model.Cached", ModelName, RevisionName, warning),
         ModelState.Ready ready => ready.LastModified is { } time
-            ? $"{ModelName} · {RevisionName} · 已是最新（{time.LocalDateTime:yyyy-MM-dd}）"
-            : $"{ModelName} · {RevisionName} · 已是最新",
+            ? Strings.Format("Text.Model.LatestAt", ModelName, RevisionName, time.LocalDateTime)
+            : Strings.Format("Text.Model.Latest", ModelName, RevisionName),
         ModelState.Error error => error.Message,
         _ => "",
     };
@@ -354,11 +360,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     private static (string Name, string? LinkText) Describe(IDoctorCheck check) => check switch
     {
-        VJoyCheck => ("vJoy", "下载 vJoy"),
-        GameCheck => ("游戏", null),
-        TelemetryCheck => ("遥测插件", "下载插件"),
-        GpuCheck => ("显卡", null),
-        _ => (check.Name, "下载"),
+        VJoyCheck => (Strings.Get("Text.Check.VJoy"), Strings.Get("Text.Check.VJoyLink")),
+        GameCheck => (Strings.Get("Text.Check.Game"), null),
+        TelemetryCheck => (Strings.Get("Text.Check.Telemetry"), Strings.Get("Text.Check.TelemetryLink")),
+        GpuCheck => (Strings.Get("Text.Check.Gpu"), null),
+        _ => (check.Name, Strings.Get("Text.Check.DefaultLink")),
     };
 
     private static ReadinessStatus ToReadiness(CheckStatus status) => status switch
