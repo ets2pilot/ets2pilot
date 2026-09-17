@@ -45,6 +45,26 @@ infer.SetAction(async (parseResult, ct) =>
 });
 root.Subcommands.Add(infer);
 
+var bench = new Command("bench", "测每帧推理各阶段的耗时分布");
+bench.Options.Add(modelOption);
+bench.SetAction(async (parseResult, ct) =>
+{
+    using var loggers = CreateLoggers("bench");
+    var modelDir = parseResult.GetValue(modelOption) ?? await ResolveModelDirAsync(loggers, ct);
+    if (modelDir is null)
+    {
+        return 1;
+    }
+    var stages = new Benchmark(modelDir, loggers.CreateLogger<Benchmark>()).Run(ct);
+    Console.WriteLine($"{"stage",-10}{"p50 ms",9}{"p95 ms",9}{"max ms",9}");
+    foreach (var stage in stages)
+    {
+        Console.WriteLine($"{stage.Name,-10}{stage.P50,9:F2}{stage.P95,9:F2}{stage.Max,9:F2}");
+    }
+    return 0;
+});
+root.Subcommands.Add(bench);
+
 var doctor = new Command("doctor", "检查 vJoy 驱动、游戏、telemetry 插件、显卡、TensorRT-RTX EP");
 doctor.SetAction(_ =>
 {

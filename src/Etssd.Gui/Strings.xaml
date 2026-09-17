@@ -41,6 +41,11 @@
     <sys:String x:Key="Text.Check.Ep">TensorRT-RTX EP</sys:String>
     <sys:String x:Key="Text.Check.EpLink">下载驱动</sys:String>
     <sys:String x:Key="Text.Check.DefaultLink">下载</sys:String>
+    <sys:String x:Key="Text.Check.Benchmark">推理耗时</sys:String>
+
+    <sys:String x:Key="Text.Benchmark.Run">测试</sys:String>
+    <sys:String x:Key="Text.Benchmark.NotRun">未测试</sys:String>
+    <sys:String x:Key="Text.Benchmark.Running">正在测试</sys:String>
 
     <sys:String x:Key="Text.Model.Unchecked">未检查</sys:String>
     <sys:String x:Key="Text.Model.Checking">正在检查 {0}</sys:String>

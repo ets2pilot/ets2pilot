@@ -48,6 +48,8 @@ public sealed partial class MainViewModel : ObservableObject
         nameof(OverviewStatus),
         nameof(OverviewTitle),
         nameof(OverviewSubtitle),
+        nameof(BenchmarkStatus),
+        nameof(BenchmarkMessage),
     ];
 
     private readonly AppConfig _config;
@@ -62,11 +64,16 @@ public sealed partial class MainViewModel : ObservableObject
     private Task _bridgeRun = Task.CompletedTask;
     private Task _controlRun = Task.CompletedTask;
     private string? _downloadFile;
+    private string? _benchmarkedDir;
     private IReadOnlyList<SubscriptionInfo> _subscriptions = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ModelStatus), nameof(ModelMessage), nameof(IsModelBusy), nameof(ModelProgress), nameof(IsModelProgressIndeterminate))]
     private ModelState? _model;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BenchmarkStatus), nameof(BenchmarkMessage))]
+    private CheckResult? _benchmarkResult;
 
     [ObservableProperty]
     private MirrorOption _selectedMirror;
@@ -92,7 +99,8 @@ public sealed partial class MainViewModel : ObservableObject
                 Logs.RemoveAt(0);
             }
         });
-        InferCommand.PropertyChanged += OnInferCommandChanged;
+        InferCommand.PropertyChanged += OnCommandRunningChanged;
+        RunBenchmarkCommand.PropertyChanged += OnCommandRunningChanged;
         _statusTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => NotifyStatusChanged(), dispatcher);
     }
 
@@ -143,6 +151,16 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsControlRunning => !_controlRun.IsCompleted;
 
     public bool IsInferRunning => InferCommand.IsRunning;
+
+    public bool IsBenchmarking => RunBenchmarkCommand.IsRunning;
+
+    public ReadinessStatus BenchmarkStatus => IsBenchmarking
+        ? ReadinessStatus.Busy
+        : BenchmarkResult is { } result ? ToReadiness(result.Status) : ReadinessStatus.Unknown;
+
+    public string BenchmarkMessage => IsBenchmarking
+        ? Strings.Get("Text.Benchmark.Running")
+        : BenchmarkResult?.Message ?? Strings.Get("Text.Benchmark.NotRun");
 
     public string Callbacks => _subscriptions.Count == 0
         ? Strings.Get("Text.Status.NoCallbacks")
@@ -238,11 +256,29 @@ public sealed partial class MainViewModel : ObservableObject
         _inferElapsed.Stop();
     }
 
-    /// <summary>有 Failed 检查项、检查未完成或模型不可用时不能运行。</summary>
+    /// <summary>有 Failed 检查项、检查未完成、模型不可用或正在测耗时时不能运行。</summary>
     private bool CanInfer() =>
         Model is ModelState.Ready
+        && !IsBenchmarking
         && Checks.Count == Etssd.Doctor.Checks.All.Count
         && Checks.All(c => c.Status != ReadinessStatus.Failed);
+
+    /// <summary>生成 RunBenchmarkCommand。与 infer 共用 GPU，二者互斥。</summary>
+    [RelayCommand(CanExecute = nameof(CanBenchmark))]
+    private async Task RunBenchmarkAsync()
+    {
+        if (Model is not ModelState.Ready ready)
+        {
+            return;
+        }
+        var check = new BenchmarkCheck(ready.Dir, _loggers.CreateLogger<BenchmarkCheck>());
+        var result = await Task.Run(check.Run);
+        _benchmarkedDir = ready.Dir;
+        BenchmarkResult = result;
+        _log.LogInformation("[{Status}] {Name}: {Message}", result.Status, check.Name, result.Message);
+    }
+
+    private bool CanBenchmark() => Model is ModelState.Ready && !IsInferRunning;
 
     /// <summary>生成 CheckModelCommand 与 CheckModelCancelCommand。缓存与 hub 不一致时下载。</summary>
     [RelayCommand(IncludeCancelCommand = true)]
@@ -307,7 +343,15 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenDataDir() => ShellOpen(AppPaths.Root);
 
-    partial void OnModelChanged(ModelState? value) => NotifyStatusChanged();
+    /// <summary>耗时结果属于测过的模型目录，模型换目录后作废。</summary>
+    partial void OnModelChanged(ModelState? value)
+    {
+        if (value is ModelState.Ready ready && ready.Dir != _benchmarkedDir)
+        {
+            BenchmarkResult = null;
+        }
+        NotifyStatusChanged();
+    }
 
     partial void OnSelectedMirrorChanged(MirrorOption value)
     {
@@ -340,7 +384,7 @@ public sealed partial class MainViewModel : ObservableObject
         Model = null;
     }
 
-    private void OnInferCommandChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnCommandRunningChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(IAsyncRelayCommand.IsRunning))
         {
@@ -356,6 +400,7 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(property);
         }
         InferCommand.NotifyCanExecuteChanged();
+        RunBenchmarkCommand.NotifyCanExecuteChanged();
     }
 
     private static (string Name, string? LinkText) Describe(IDoctorCheck check) => check switch
