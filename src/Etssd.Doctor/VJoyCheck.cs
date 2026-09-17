@@ -22,7 +22,7 @@ public sealed class VJoyCheck : IDoctorCheck
         }
         catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException)
         {
-            return new(CheckStatus.Failed, $"无法加载 {dll}: {ex.Message}", VJoyInstall.DownloadUrl);
+            return new(CheckStatus.Failed, "无法加载 vJoyInterface.dll", VJoyInstall.DownloadUrl);
         }
         if (!enabled)
         {
@@ -34,7 +34,7 @@ public sealed class VJoyCheck : IDoctorCheck
         }
         return VJoyNative.GetVJDStatus(DeviceId) switch
         {
-            VjdStat.Own or VjdStat.Free => new(CheckStatus.Ok, $"设备 {DeviceId} 可用，{dll}"),
+            VjdStat.Own or VjdStat.Free => new(CheckStatus.Ok, $"设备 {DeviceId} 可用"),
             VjdStat.Busy => new(CheckStatus.Warning, $"设备 {DeviceId} 被其他进程占用"),
             VjdStat.Miss => new(CheckStatus.Failed, $"设备 {DeviceId} 未配置，用 vJoyConf 启用", VJoyInstall.DownloadUrl),
             _ => new(CheckStatus.Failed, $"设备 {DeviceId} 状态未知"),

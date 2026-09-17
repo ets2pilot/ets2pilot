@@ -12,7 +12,7 @@ public sealed class EpCheck : IDoctorCheck
     {
         if (!File.Exists(TrtRtxEp.PluginPath))
         {
-            return new(CheckStatus.Failed, $"缺少 {TrtRtxEp.PluginPath}，发布产物不完整");
+            return new(CheckStatus.Failed, $"缺少 {Path.GetFileName(TrtRtxEp.PluginPath)}，发布产物不完整");
         }
         int version;
         try
@@ -30,7 +30,7 @@ public sealed class EpCheck : IDoctorCheck
         var required = $"{TrtRtxEp.MinCudaDriverVersion / 1000}.{TrtRtxEp.MinCudaDriverVersion % 1000 / 10}";
         return version < TrtRtxEp.MinCudaDriverVersion
             ? new(CheckStatus.Failed, $"驱动支持 CUDA {cuda}，插件要求 {required}", TrtRtxEp.DriverUrl)
-            : new(CheckStatus.Ok, $"驱动支持 CUDA {cuda}，插件 {TrtRtxEp.Dir}");
+            : new(CheckStatus.Ok, $"驱动支持 CUDA {cuda}");
     }
 
     /// <summary>驱动 API，不需要 cuInit。返回 0 表示成功，version 编码为 1000 * major + 10 * minor。</summary>
