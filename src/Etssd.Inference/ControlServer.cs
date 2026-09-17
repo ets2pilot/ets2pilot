@@ -16,8 +16,8 @@ namespace Etssd.Inference;
 /// <param name="YawRate">[H]。</param>
 public sealed record TrajectoryRequest(double Freq, byte[] Telemetry, double[] Speed, double[] YawRate);
 
-/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 bridge 的 /control，steer 先经一阶低通。</summary>
-public sealed class ControlServer(HttpClient http)
+/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，autopilot 开启时把控制量 POST 到 bridge 的 /control，steer 先经一阶低通。</summary>
+public sealed class ControlServer(HttpClient http, AutopilotSwitch autopilot)
 {
     public const string Url = "http://127.0.0.1:5322";
 
@@ -47,7 +47,8 @@ public sealed class ControlServer(HttpClient http)
 
         app.MapPost("/notify", async (Notification notification) =>
         {
-            if (notification is not { Event: "data", Telemetry: { } telemetry } || _plan is not { } plan)
+            // 自动驾驶关闭时不调用 Controller.At，积分项不累积人工驾驶期间的速度误差
+            if (notification is not { Event: "data", Telemetry: { } telemetry } || _plan is not { } plan || !autopilot.IsEngaged)
             {
                 return Results.NoContent();
             }

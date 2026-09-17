@@ -20,10 +20,10 @@
     <sys:String x:Key="Text.Overview.TitleNotReady">尚未就绪</sys:String>
     <!-- {0} 模型名 {1} 版本 {2} 运行时长 {3} 丢帧数 -->
     <sys:String x:Key="Text.Overview.SubtitleRunning">{0} {1} · 已运行 {2} · 丢帧 {3}</sys:String>
-    <sys:String x:Key="Text.Overview.SubtitleReady">运行模型后回到游戏</sys:String>
+    <sys:String x:Key="Text.Overview.SubtitleReady">运行模型后回到游戏，按 W 开启自动驾驶</sys:String>
     <sys:String x:Key="Text.Overview.SubtitleNotReady">先完成标红的准备项</sys:String>
-    <sys:String x:Key="Text.Overview.ControlOff">控制 · 未启用</sys:String>
-    <sys:String x:Key="Text.Overview.ControlOn">控制 · 已启用</sys:String>
+    <sys:String x:Key="Text.Overview.AutopilotOff">自动驾驶 · 关</sys:String>
+    <sys:String x:Key="Text.Overview.AutopilotOn">自动驾驶 · 开</sys:String>
     <sys:String x:Key="Text.Overview.Run">运行模型</sys:String>
     <sys:String x:Key="Text.Overview.Stop">停止</sys:String>
     <sys:String x:Key="Text.Overview.ChecksHeader">准备情况</sys:String>
@@ -31,6 +31,12 @@
     <sys:String x:Key="Text.Overview.ModelRow">模型</sys:String>
     <sys:String x:Key="Text.Overview.CheckUpdate">检查更新</sys:String>
     <sys:String x:Key="Text.Overview.Cancel">取消</sys:String>
+
+    <sys:String x:Key="Text.Keys.Lock">锁定/解锁手动驾驶</sys:String>
+    <sys:String x:Key="Text.Keys.LockTip">锁定手动驾驶后，W/S 不会快捷切换自动驾驶</sys:String>
+    <sys:String x:Key="Text.Keys.Engage">开启自动驾驶</sys:String>
+    <!-- {0} 长按秒数 -->
+    <sys:String x:Key="Text.Keys.Disengage">长按 {0:0.#} 秒关闭自动驾驶</sys:String>
 
     <sys:String x:Key="Text.Check.VJoy">vJoy</sys:String>
     <sys:String x:Key="Text.Check.VJoyLink">下载 vJoy</sys:String>

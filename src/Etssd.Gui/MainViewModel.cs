@@ -44,7 +44,7 @@ public sealed partial class MainViewModel : ObservableObject
         nameof(IsInferRunning),
         nameof(Callbacks),
         nameof(InferFreq),
-        nameof(IsControlEnabled),
+        nameof(IsAutopilotEngaged),
         nameof(OverviewStatus),
         nameof(OverviewTitle),
         nameof(OverviewSubtitle),
@@ -101,6 +101,7 @@ public sealed partial class MainViewModel : ObservableObject
         });
         InferCommand.PropertyChanged += OnCommandRunningChanged;
         RunBenchmarkCommand.PropertyChanged += OnCommandRunningChanged;
+        _control.AutopilotChanged += () => dispatcher.BeginInvoke(NotifyStatusChanged);
         _statusTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => NotifyStatusChanged(), dispatcher);
     }
 
@@ -169,8 +170,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>infer 订阅的频率，未注册时为 null。</summary>
     public string? InferFreq => InferSubscription is { } infer ? $"{infer.Freq:0.#} Hz" : null;
 
-    /// <summary>control 只在收到轨迹后注册 telemetry 订阅，订阅存在即表示控制已启用。</summary>
-    public bool IsControlEnabled => _subscriptions.Any(s => s.Name == "control");
+    public bool IsAutopilotEngaged => _control.IsAutopilotEngaged;
+
+    public string DisengageHint => Strings.Format("Text.Keys.Disengage", AutopilotKeys.DisengageHold.TotalSeconds);
 
     public ReadinessStatus OverviewStatus =>
         IsInferRunning ? ReadinessStatus.Ok : CanInfer() ? ReadinessStatus.Unknown : ReadinessStatus.Warning;

@@ -19,6 +19,20 @@
             <Setter Property="TextElement.FontWeight" Value="SemiBold" />
             <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
+        <Style x:Key="Keycap" TargetType="Border">
+            <Setter Property="MinWidth" Value="22" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+            <Setter Property="Padding" Value="5,0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="1,1,1,2" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            <Setter Property="TextElement.FontFamily" Value="{StaticResource MonoFont}" />
+            <Setter Property="TextElement.FontSize" Value="12" />
+            <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
     </Page.Resources>
 
     <StackPanel Margin="24,16,24,24">
@@ -32,8 +46,7 @@
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Style="{StaticResource StatusIcon}" Tag="{Binding OverviewStatus}" VerticalAlignment="Center" />
                         <TextBlock Margin="10,0,0,0" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding OverviewTitle}" />
-                        <StackPanel Orientation="Horizontal" Margin="4,0,0,0" VerticalAlignment="Center"
-                                    Visibility="{Binding IsInferRunning, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal" Margin="4,0,0,0" VerticalAlignment="Center">
                             <Border>
                                 <Border.Style>
                                     <Style TargetType="Border" BasedOn="{StaticResource Chip}">
@@ -50,7 +63,7 @@
                                 <Border.Style>
                                     <Style TargetType="Border" BasedOn="{StaticResource Chip}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsControlEnabled}" Value="True">
+                                            <DataTrigger Binding="{Binding IsAutopilotEngaged}" Value="True">
                                                 <Setter Property="Background" Value="{DynamicResource SystemFillColorSuccessBackgroundBrush}" />
                                                 <Setter Property="TextElement.Foreground" Value="{DynamicResource SystemFillColorSuccessBrush}" />
                                             </DataTrigger>
@@ -60,10 +73,10 @@
                                 <TextBlock VerticalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Text" Value="{DynamicResource Text.Overview.ControlOff}" />
+                                            <Setter Property="Text" Value="{DynamicResource Text.Overview.AutopilotOff}" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsControlEnabled}" Value="True">
-                                                    <Setter Property="Text" Value="{DynamicResource Text.Overview.ControlOn}" />
+                                                <DataTrigger Binding="{Binding IsAutopilotEngaged}" Value="True">
+                                                    <Setter Property="Text" Value="{DynamicResource Text.Overview.AutopilotOn}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -73,6 +86,21 @@
                         </StackPanel>
                     </StackPanel>
                     <TextBlock Margin="26,4,0,0" Style="{StaticResource SecondaryText}" Text="{Binding OverviewSubtitle}" />
+                    <WrapPanel Margin="26,8,0,0">
+                        <Border Style="{StaticResource Keycap}">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Q" />
+                        </Border>
+                        <TextBlock Margin="6,4,16,0" Style="{StaticResource CaptionText}"
+                                   Text="{DynamicResource Text.Keys.Lock}" ToolTip="{DynamicResource Text.Keys.LockTip}" />
+                        <Border Style="{StaticResource Keycap}">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="W" />
+                        </Border>
+                        <TextBlock Margin="6,4,16,0" Style="{StaticResource CaptionText}" Text="{DynamicResource Text.Keys.Engage}" />
+                        <Border Style="{StaticResource Keycap}">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="S" />
+                        </Border>
+                        <TextBlock Margin="6,4,0,0" Style="{StaticResource CaptionText}" Text="{Binding DisengageHint}" />
+                    </WrapPanel>
                 </StackPanel>
                 <ui:Button Grid.Column="1" Height="32" Padding="20,0" VerticalAlignment="Center">
                     <ui:Button.Style>

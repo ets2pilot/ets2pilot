@@ -1,0 +1,4 @@
+FindWindow
+GetAsyncKeyState
+GetForegroundWindow
+VIRTUAL_KEY
