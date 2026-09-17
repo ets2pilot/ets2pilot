@@ -13,4 +13,27 @@
     <ProjectReference Include="..\Etssd.Bridge\Etssd.Bridge.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <TrtRtxEpVersion>0.4.1</TrtRtxEpVersion>
+    <TrtRtxEpZip>TensorRT-RTX-EP-ABI-v$(TrtRtxEpVersion)-cu13.zip</TrtRtxEpZip>
+    <TrtRtxEpUrl>https://github.com/NVIDIA/TensorRT-RTX-EP-ABI/releases/download/v$(TrtRtxEpVersion)/$(TrtRtxEpZip)</TrtRtxEpUrl>
+    <TrtRtxEpCache>$(LocalAppData)\etssd-build\trtrtx-ep-v$(TrtRtxEpVersion)-cu13</TrtRtxEpCache>
+    <TrtRtxEpStamp>$(TrtRtxEpCache)\.complete</TrtRtxEpStamp>
+  </PropertyGroup>
+
+  <Target Name="FetchTrtRtxEp" Condition="!Exists('$(TrtRtxEpStamp)')">
+    <Message Importance="high" Text="正在下载 $(TrtRtxEpUrl)" />
+    <DownloadFile SourceUrl="$(TrtRtxEpUrl)" DestinationFolder="$(TrtRtxEpCache)" DestinationFileName="$(TrtRtxEpZip)" />
+    <Unzip SourceFiles="$(TrtRtxEpCache)\$(TrtRtxEpZip)" DestinationFolder="$(TrtRtxEpCache)" />
+    <Delete Files="$(TrtRtxEpCache)\$(TrtRtxEpZip)" />
+    <Touch Files="$(TrtRtxEpStamp)" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="IncludeTrtRtxEp" DependsOnTargets="FetchTrtRtxEp" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <TrtRtxEpFile Include="$(TrtRtxEpCache)\*.dll;$(TrtRtxEpCache)\LICENSE;$(TrtRtxEpCache)\*.txt;$(TrtRtxEpCache)\Privacy.md" />
+      <Content Include="@(TrtRtxEpFile)" Link="ep\trtrtx\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
 </Project>

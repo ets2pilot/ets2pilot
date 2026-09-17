@@ -2,13 +2,13 @@ using System.IO.MemoryMappedFiles;
 using System.Net.Http.Json;
 using System.Threading.Channels;
 using Etssd.Bridge.Http;
+using Etssd.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
-using SessionOptions = Microsoft.ML.OnnxRuntime.SessionOptions;
 
 namespace Etssd.Inference;
 
@@ -22,16 +22,13 @@ public sealed class ModelServer(string modelDir, HttpClient http, ILogger log)
 
     public async Task RunAsync(CancellationToken ct)
     {
-        using var options = new SessionOptions
-        {
-            // DirectML EP 要求关闭内存图样并顺序执行
-            EnableMemoryPattern = false,
-            ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
-        };
-        options.AppendExecutionProvider_DML(0);
-        using var telemetryEncoder = new TelemetryEncoder(new InferenceSession(Path.Combine(modelDir, "telemetry_encoder.onnx"), options));
-        using var imageEncoder = new ImageEncoder(new InferenceSession(Path.Combine(modelDir, "image_encoder.onnx"), options));
-        using var decoder = new Decoder(new InferenceSession(Path.Combine(modelDir, "decoder.onnx"), options));
+        GpuProviders.Register(log);
+        using var telemetryEncoder = new TelemetryEncoder(
+            GpuProviders.CreateDirectMlSession(Path.Combine(modelDir, "telemetry_encoder.onnx")));
+        using var imageEncoder = new ImageEncoder(
+            GpuProviders.CreateTensorRtRtxSession(Path.Combine(modelDir, "image_encoder.onnx"), log));
+        using var decoder = new Decoder(
+            GpuProviders.CreateTensorRtRtxSession(Path.Combine(modelDir, "decoder.onnx"), log));
 
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseUrls(Url);

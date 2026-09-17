@@ -364,6 +364,7 @@ public sealed partial class MainViewModel : ObservableObject
         GameCheck => (Strings.Get("Text.Check.Game"), null),
         TelemetryCheck => (Strings.Get("Text.Check.Telemetry"), Strings.Get("Text.Check.TelemetryLink")),
         GpuCheck => (Strings.Get("Text.Check.Gpu"), null),
+        EpCheck => (Strings.Get("Text.Check.Ep"), Strings.Get("Text.Check.EpLink")),
         _ => (check.Name, Strings.Get("Text.Check.DefaultLink")),
     };
 

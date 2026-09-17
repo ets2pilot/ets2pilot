@@ -12,6 +12,8 @@ public static class AppPaths
 
     public static string ModelsDir { get; } = Path.Combine(Root, "models");
 
+    public static string EngineCacheDir { get; } = Path.Combine(Root, "engine-cache");
+
     /// <summary>日志文件按进程角色分开，同时运行的 CLI 子命令与 GUI 不共用文件。</summary>
     public static string LogFile(string role) => Path.Combine(LogDir, $"etssd-{role}.log");
 }

@@ -28,5 +28,6 @@ public static class Checks
         new GameCheck(),
         new TelemetryCheck(),
         new GpuCheck(),
+        new EpCheck(),
     ];
 }
