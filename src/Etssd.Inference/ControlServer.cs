@@ -16,11 +16,15 @@ namespace Etssd.Inference;
 /// <param name="YawRate">[H]。</param>
 public sealed record TrajectoryRequest(double Freq, byte[] Telemetry, double[] Speed, double[] YawRate);
 
-/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 bridge 的 /control。</summary>
+/// <summary>控制算法 server。每收到一条轨迹就以轨迹时长为租期注册 60Hz telemetry webhook，跟踪最新的轨迹，把控制量 POST 到 bridge 的 /control，steer 先经一阶低通。</summary>
 public sealed class ControlServer(HttpClient http)
 {
     public const string Url = "http://127.0.0.1:5322";
 
+    private const double SteerTauS = 0.15;
+
+    // 状态跨轨迹保留，轨迹切换产生的 steer 阶跃同样被平滑
+    private readonly LowPass _steer = new(SteerTauS);
     private Plan? _plan;
 
     public async Task RunAsync(CancellationToken ct)
@@ -55,8 +59,9 @@ public sealed class ControlServer(HttpClient http)
             }
             // 控制流的遥测可能早于轨迹的锚点帧，按锚点取
             var command = plan.Controller.At(Math.Max(offset, 0), state);
+            var steer = _steer.Next(state.TimeUs, command.Steer);
             using var response = await http.PostAsJsonAsync(
-                $"{BridgeServer.Url}/control", new ControlRequest(command.Accel, command.Steer), Json.Options);
+                $"{BridgeServer.Url}/control", new ControlRequest(command.Accel, steer), Json.Options);
             return Results.NoContent();
         });
 
