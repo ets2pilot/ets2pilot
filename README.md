@@ -15,6 +15,15 @@
 - 依赖 [scs-sdk-plugin](https://github.com/RenCloud/scs-sdk-plugin/releases) 获取自车状态。把 `scs-telemetry.dll` 放到 `<游戏目录>\bin\win_x64\plugins`
 - 依赖 [NVIDIA 驱动](https://www.nvidia.com/drivers) 580 及更新的版本(终端运行 `nvidia-smi` 检查版本)
 
+## 下载
+
+在 [Releases](https://github.com/ets2-self-driving/ets2-self-driving/releases/latest) 页面下载压缩包，解压后运行 `etssd-gui.exe`。
+
+| 压缩包 | 内容 |
+| --- | --- |
+| `etssd-gui-<版本>-win-x64.zip` | 图形界面 `etssd-gui.exe` |
+| `etssd-gui-cli-<版本>-win-x64.zip` | 图形界面 `etssd-gui.exe` 和命令行 `etssd.exe` |
+
 ## 游戏设置
 
 画面设置:

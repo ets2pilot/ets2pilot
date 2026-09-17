@@ -1,0 +1,53 @@
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 递增的版本段
+        type: choice
+        options: [patch, minor]
+        default: patch
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency: bump-version
+
+jobs:
+  bump:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Bump Directory.Build.props
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          current=$(sed -n 's:.*<Version>\([0-9]*\.[0-9]*\.[0-9]*\)</Version>.*:\1:p' Directory.Build.props)
+          IFS=. read -r major minor patch <<< "$current"
+          case "$BUMP" in
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "::error::未知的 bump 类型 $BUMP"; exit 1 ;;
+          esac
+          next="$major.$minor.$patch"
+          sed -i "s:<Version>$current</Version>:<Version>$next</Version>:" Directory.Build.props
+          grep -q "<Version>$next</Version>" Directory.Build.props
+          echo "VERSION=$next" >> "$GITHUB_ENV"
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): Bump version to $VERSION"
+          git tag "v$VERSION"
+          git push --atomic origin main "v$VERSION"
+
+      # GITHUB_TOKEN 推送的 tag 不产生 push 事件，release.yml 需要显式触发
+      - name: Trigger release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --ref "v$VERSION"

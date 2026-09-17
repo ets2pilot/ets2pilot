@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  # 以 tag 为 ref 触发，供 bump-version.yml 调用
+  workflow_dispatch:
+
+concurrency: release-${{ github.ref }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - variant: gui
+            projects: Etssd.Gui
+          - variant: gui-cli
+            projects: Etssd.Gui Etssd.Cli
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve version from tag
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != tag || ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::ref $GITHUB_REF 不是 vX.Y.Z 形式的 tag"
+            exit 1
+          fi
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          echo "ASSET=etssd-${{ matrix.variant }}-$GITHUB_REF_NAME-win-x64.zip" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # 同一 variant 的项目发布到同一目录，共用原生依赖和 ep/trtrtx
+      - name: Publish
+        run: |
+          for project in ${{ matrix.projects }}; do
+            dotnet publish "src/$project" -c Release -r win-x64 --self-contained \
+              -p:PublishSingleFile=true -p:DebugType=none -p:Version="$VERSION" \
+              -o publish/etssd
+          done
+
+      - name: Pack
+        run: cd publish && 7z a "../$ASSET" etssd
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.variant }}
+          path: ${{ env.ASSET }}
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
