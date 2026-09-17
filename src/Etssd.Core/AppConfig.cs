@@ -13,7 +13,7 @@ public sealed record AppConfig
     };
 
     /// <summary>hub 上的模型仓库，形如 owner/name。</summary>
-    public string ModelRepo { get; set; } = "ets2-self-driving/ets2-self-driving-model";
+    public string ModelRepo { get; set; } = "ryangowe/ets2-self-driving-model";
 
     /// <summary>分支、标签或 commit sha，空表示 main。</summary>
     public string ModelRevision { get; set; } = "";
