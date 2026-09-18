@@ -3,7 +3,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
-    <sys:String x:Key="Text.App.Title">ets2pilot</sys:String>
+    <sys:String x:Key="Text.App.Title">ETS2Pilot</sys:String>
 
     <sys:String x:Key="Text.Nav.Overview">概览</sys:String>
     <sys:String x:Key="Text.Nav.Logs">日志</sys:String>
