@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ets2Pilot.Core\Ets2Pilot.Core.csproj" />
+    <ProjectReference Include="..\Ets2Pilot.Bridge\Ets2Pilot.Bridge.csproj" />
+    <ProjectReference Include="..\Ets2Pilot.Inference\Ets2Pilot.Inference.csproj" />
+  </ItemGroup>
+
+</Project>

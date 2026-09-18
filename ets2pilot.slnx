@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ets2Pilot.Core/Ets2Pilot.Core.csproj" />
+    <Project Path="src/Ets2Pilot.Bridge/Ets2Pilot.Bridge.csproj" />
+    <Project Path="src/Ets2Pilot.Inference/Ets2Pilot.Inference.csproj" />
+    <Project Path="src/Ets2Pilot.Doctor/Ets2Pilot.Doctor.csproj" />
+    <Project Path="src/Ets2Pilot.Cli/Ets2Pilot.Cli.csproj" />
+    <Project Path="src/Ets2Pilot.Gui/Ets2Pilot.Gui.csproj" />
+  </Folder>
+</Solution>

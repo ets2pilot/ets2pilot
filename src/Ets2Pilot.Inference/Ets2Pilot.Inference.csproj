@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.333" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ets2Pilot.Core\Ets2Pilot.Core.csproj" />
+    <ProjectReference Include="..\Ets2Pilot.Bridge\Ets2Pilot.Bridge.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TrtRtxEpVersion>0.4.1</TrtRtxEpVersion>
+    <TrtRtxEpZip>TensorRT-RTX-EP-ABI-v$(TrtRtxEpVersion)-cu13.zip</TrtRtxEpZip>
+    <TrtRtxEpUrl>https://github.com/NVIDIA/TensorRT-RTX-EP-ABI/releases/download/v$(TrtRtxEpVersion)/$(TrtRtxEpZip)</TrtRtxEpUrl>
+    <TrtRtxEpCache>$(LocalAppData)\ets2pilot-build\trtrtx-ep-v$(TrtRtxEpVersion)-cu13</TrtRtxEpCache>
+    <TrtRtxEpStamp>$(TrtRtxEpCache)\.complete</TrtRtxEpStamp>
+  </PropertyGroup>
+
+  <Target Name="FetchTrtRtxEp" Condition="!Exists('$(TrtRtxEpStamp)')">
+    <Message Importance="high" Text="正在下载 $(TrtRtxEpUrl)" />
+    <DownloadFile SourceUrl="$(TrtRtxEpUrl)" DestinationFolder="$(TrtRtxEpCache)" DestinationFileName="$(TrtRtxEpZip)" />
+    <Unzip SourceFiles="$(TrtRtxEpCache)\$(TrtRtxEpZip)" DestinationFolder="$(TrtRtxEpCache)" />
+    <Delete Files="$(TrtRtxEpCache)\$(TrtRtxEpZip)" />
+    <Touch Files="$(TrtRtxEpStamp)" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="IncludeTrtRtxEp" DependsOnTargets="FetchTrtRtxEp" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <TrtRtxEpFile Include="$(TrtRtxEpCache)\*.dll;$(TrtRtxEpCache)\LICENSE;$(TrtRtxEpCache)\*.txt;$(TrtRtxEpCache)\Privacy.md" />
+      <Content Include="@(TrtRtxEpFile)" Link="ep\trtrtx\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+</Project>

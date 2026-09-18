@@ -1,4 +1,4 @@
-# ets2-self-driving
+# ets2pilot
 
 欧洲卡车模拟 2 的自动驾驶程序。它直接读取屏幕导航，将卡车行驶到目标地点。
 
@@ -17,12 +17,12 @@
 
 ## 下载
 
-在 [Releases](https://github.com/ets2-self-driving/ets2-self-driving/releases/latest) 页面下载压缩包，解压后运行 `etssd-gui.exe`。
+在 [Releases](https://github.com/ets2pilot/ets2pilot/releases/latest) 页面下载压缩包，解压后运行 `ets2pilot-gui.exe`。
 
 | 压缩包 | 内容 |
 | --- | --- |
-| `etssd-gui-<版本>-win-x64.zip` | 图形界面 `etssd-gui.exe` |
-| `etssd-gui-cli-<版本>-win-x64.zip` | 图形界面 `etssd-gui.exe` 和命令行 `etssd.exe` |
+| `ets2pilot-gui-<版本>-win-x64.zip` | 图形界面 `ets2pilot-gui.exe` |
+| `ets2pilot-gui-cli-<版本>-win-x64.zip` | 图形界面 `ets2pilot-gui.exe` 和命令行 `ets2pilot.exe` |
 
 ## 游戏设置
 
